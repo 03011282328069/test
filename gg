@@ -1490,7 +1490,6 @@ function getHTML() {
             </h1>
             <p class="subtitle">Real-time cryptocurrency market with Signal Analysis</p>
             <p class="usdt-rate" id="usdtRate">💱 USDT/IDR Rate: Loading...</p>
-            <p class="refresh-info" id="refreshInfo">⏱️ Auto refresh: 5s (Pauses during interaction)</p>
         </div>
         
         <div id="loading" class="loading">⏳ Loading market data...</div>
@@ -1591,6 +1590,7 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 8, 'string')">Signals</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 9, 'number')">Volume</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 10, 'string')">Risk</th>
+                                        <th>🎯 Target/SL/Risk</th>
                                     </tr>
                                 </thead>
                                 <tbody id="buySignalsBody"></tbody>
@@ -1616,6 +1616,7 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 8, 'string')">Signals</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 9, 'number')">Volume</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 10, 'string')">Risk</th>
+                                        <th>🎯 Target/SL/Risk</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sellSignalsBody"></tbody>
@@ -1835,6 +1836,77 @@ function getHTML() {
             return { level: 'LOW', color: '#22c55e', icon: '🟢', class: 'risk-low' };
         }
         
+        // Calculate Target/SL/Risk based on signal type
+        function calculateTargetSLRisk(ticker, signal) {
+            const bandWidth = ticker.high - ticker.low;
+            const last = ticker.last;
+            const high = ticker.high;
+            const low = ticker.low;
+            
+            let targets = [];
+            let stopLoss = 0;
+            let riskReward = 0;
+            
+            if (signal.type === 'SELL') {
+                // Resistance levels based on Fibonacci & BB
+                const resistance1 = last + (bandWidth * 0.236);  // Fibo 23.6%
+                const resistance2 = last + (bandWidth * 0.382);  // Fibo 38.2%
+                const resistance3 = high;                         // Recent high
+                stopLoss = low * 0.98;                           // Below low
+                
+                targets = [
+                    { label: '🔴 Resistance 1', value: resistance1, color: '#ef4444' },
+                    { label: '🔴 Resistance 2', value: resistance2, color: '#ef4444' },
+                    { label: '🔴 Resistance 3', value: resistance3, color: '#ef4444' }
+                ];
+                
+                const risk = Math.abs(last - stopLoss);
+                const reward = Math.abs(resistance2 - last);
+                riskReward = reward > 0 && risk > 0 ? (reward / risk) : 0;
+                
+            } else if (signal.type === 'BUY') {
+                // Support levels based on Fibonacci & BB
+                const support1 = last - (bandWidth * 0.236);     // Fibo 23.6%
+                const support2 = last - (bandWidth * 0.382);     // Fibo 38.2%
+                const support3 = low;                             // Recent low
+                stopLoss = low * 0.95;                           // Below strongest support
+                
+                targets = [
+                    { label: '🟢 Support 1', value: support1, color: '#22c55e' },
+                    { label: '🟢 Support 2', value: support2, color: '#22c55e' },
+                    { label: '🟢 Support 3', value: support3, color: '#22c55e' }
+                ];
+                
+                const target = last + (last - support2);
+                const risk = Math.abs(last - stopLoss);
+                const reward = Math.abs(target - last);
+                riskReward = reward > 0 && risk > 0 ? (reward / risk) : 0;
+            }
+            
+            return {
+                targets,
+                stopLoss,
+                riskReward: riskReward.toFixed(1)
+            };
+        }
+        
+        // Format Target/SL/Risk for display
+        function formatTargetSLRisk(ticker, signal) {
+            const calc = calculateTargetSLRisk(ticker, signal);
+            
+            let html = '<div style="font-size: 11px; line-height: 1.6;">';
+            
+            calc.targets.forEach(target => {
+                html += \`<div style="color: \${target.color};">\${target.label}: \${formatPrice(target.value)}</div>\`;
+            });
+            
+            html += \`<div style="color: #ef4444;">🛑 SL: \${formatPrice(calc.stopLoss)}</div>\`;
+            html += \`<div style="color: #fbbf24;">💎 R/R: 1:\${calc.riskReward}</div>\`;
+            html += '</div>';
+            
+            return html;
+        }
+        
         function switchSignalTab(tab) {
             activeSignalTab = tab;
             
@@ -1932,8 +2004,6 @@ function getHTML() {
                     loadMarketData(true);
                 }
             }
-            document.getElementById('refreshInfo').textContent = 
-                \`⏱️ Auto refresh: \${secondsUntilRefresh}s\` + (isPaused ? ' (Paused)' : ' (Active)');
         }
         
         function displayMarketData(data) {
@@ -2082,7 +2152,7 @@ function getHTML() {
             buyBody.innerHTML = '';
             
             if (buySignals.length === 0) {
-                buyBody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#9ca3af;">No buy signals for this timeframe</td></tr>';
+                buyBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#9ca3af;">No buy signals for this timeframe</td></tr>';
             } else {
                 buySignals.forEach((ticker, index) => {
                     const signal = ticker.signals[selectedTimeframe];
@@ -2172,6 +2242,9 @@ function getHTML() {
                         <td data-value="\${riskLevel.level}">
                             <span class="risk-badge \${riskLevel.class}">\${riskLevel.icon} \${riskLevel.level}</span>
                         </td>
+                        <td>
+                            \${formatTargetSLRisk(ticker, signal)}
+                        </td>
                     \`;
                     
                     setTimeout(() => {
@@ -2186,7 +2259,7 @@ function getHTML() {
             sellBody.innerHTML = '';
             
             if (sellSignals.length === 0) {
-                sellBody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#9ca3af;">No sell signals for this timeframe</td></tr>';
+                sellBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#9ca3af;">No sell signals for this timeframe</td></tr>';
             } else {
                 sellSignals.forEach((ticker, index) => {
                     const signal = ticker.signals[selectedTimeframe];
@@ -2275,6 +2348,9 @@ function getHTML() {
                         <td data-value="\${ticker.volume}" class="\${volumeFlash}">\${formatVolume(ticker.volume)}</td>
                         <td data-value="\${riskLevel.level}">
                             <span class="risk-badge \${riskLevel.class}">\${riskLevel.icon} \${riskLevel.level}</span>
+                        </td>
+                        <td>
+                            \${formatTargetSLRisk(ticker, signal)}
                         </td>
                     \`;
                     
@@ -2981,16 +3057,6 @@ function getHTML() {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             }).format(value);
-        }
-        
-        // Initialize refresh interval on page load
-        const savedInterval = localStorage.getItem('indodax_refresh_interval');
-        if (savedInterval) {
-            refreshIntervalTime = parseInt(savedInterval);
-            const selectEl = document.getElementById('refreshInterval');
-            if (selectEl) {
-                selectEl.value = savedInterval;
-            }
         }
         
         loadMarketData();
