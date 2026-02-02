@@ -1987,6 +1987,8 @@ function getHTML() {
             }
         }
         
+        // Countdown timer for auto-refresh - decrements every second and triggers refresh at 0
+        // Respects isPaused flag - countdown continues when not paused
         function updateCountdown() {
             if (!isPaused) {
                 secondsUntilRefresh--;
@@ -1995,7 +1997,6 @@ function getHTML() {
                     loadMarketData(true);
                 }
             }
-            // Refresh info UI removed - auto refresh continues silently
         }
         
         function displayMarketData(data) {
