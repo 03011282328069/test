@@ -2953,8 +2953,7 @@ function getHTML() {
             }
             
             // Filter for tickers with signals
-            let filteredTickers = filterByPairType(tickers, selectedPairFilter);
-            let signalTickers = filteredTickers.filter(t => 
+            let signalTickers = tickers.filter(t => 
                 t.signals[selectedTimeframe] && 
                 (t.signals[selectedTimeframe].type === 'BUY' || t.signals[selectedTimeframe].type === 'SELL')
             ).sort((a, b) => b.signals[selectedTimeframe].score - a.signals[selectedTimeframe].score);
