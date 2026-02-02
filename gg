@@ -524,16 +524,12 @@ function getHTML() {
             font-size: var(--font-base) !important;
             margin-top: 10px;
         }
-        .refresh-info {
-            color: #9ca3af;
-            font-size: var(--font-sm) !important;
-            margin-top: 5px;
-        }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
+            align-items: start;
         }
         .stat-card {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -542,6 +538,9 @@ function getHTML() {
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border: 1px solid #2a2a3e;
             transition: transform 0.3s, border-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         .stat-card:hover {
             transform: translateY(-5px);
@@ -948,7 +947,6 @@ function getHTML() {
         /* ============================================================
            NEW FEATURES STYLES
            ============================================================ */
-        /* Pair Filter */
         
         /* Risk Badge */
         .risk-badge {
@@ -1109,9 +1107,6 @@ function getHTML() {
             }
             .usdt-rate {
                 margin-top: 6px;
-            }
-            .refresh-info {
-                margin-top: 3px;
             }
 
             /* --- Stats Grid: 2x2 on mobile --- */
@@ -1376,7 +1371,7 @@ function getHTML() {
             h1 {
                 font-size: 1.3em;
             }
-            .subtitle, .usdt-rate, .refresh-info {
+            .subtitle, .usdt-rate {
                 display: none;
             }
             .stats-grid {
@@ -1436,7 +1431,6 @@ function getHTML() {
             </h1>
             <p class="subtitle">Real-time cryptocurrency market with Signal Analysis</p>
             <p class="usdt-rate" id="usdtRate">💱 USDT/IDR Rate: Loading...</p>
-            <p class="refresh-info" id="refreshInfo">⏱️ Auto refresh: 5s (Pauses during interaction)</p>
         </div>
         
         <div id="loading" class="loading">⏳ Loading market data...</div>
@@ -1993,6 +1987,8 @@ function getHTML() {
             }
         }
         
+        // Countdown timer for auto-refresh - decrements every second and triggers refresh at 0
+        // Respects isPaused flag - countdown continues when not paused
         function updateCountdown() {
             if (!isPaused) {
                 secondsUntilRefresh--;
@@ -2001,8 +1997,6 @@ function getHTML() {
                     loadMarketData(true);
                 }
             }
-            document.getElementById('refreshInfo').textContent = 
-                \`⏱️ Auto refresh: \${secondsUntilRefresh}s\` + (isPaused ? ' (Paused)' : ' (Active)');
         }
         
         function displayMarketData(data) {
