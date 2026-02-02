@@ -986,40 +986,6 @@ function getHTML() {
             border-color: #fbbf24;
         }
         
-        /* Filter Controls */
-        .filter-controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            padding: 15px;
-            background: #0f0f1e;
-            border-radius: 8px;
-            border: 1px solid #2a2a3e;
-        }
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        .filter-group label {
-            font-size: var(--font-sm);
-            color: #9ca3af;
-        }
-        .filter-group select {
-            padding: 8px 12px;
-            background: #1a1a2e;
-            border: 1px solid #2a2a3e;
-            border-radius: 6px;
-            color: #e0e0e0;
-            font-size: var(--font-sm);
-            cursor: pointer;
-        }
-        .filter-group select:focus {
-            outline: none;
-            border-color: #4ade80;
-        }
-        
         /* Watchlist Button */
         .watchlist-btn {
             background: transparent;
@@ -1088,57 +1054,6 @@ function getHTML() {
             border-bottom: 1px solid #2a2a3e;
             padding-bottom: 8px;
             margin-bottom: 4px;
-        }
-        
-        /* Refresh Controls */
-        .refresh-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .refresh-controls label {
-            color: #9ca3af;
-            font-size: var(--font-sm);
-        }
-        .refresh-controls select {
-            padding: 6px 12px;
-            background: #1a1a2e;
-            border: 1px solid #2a2a3e;
-            border-radius: 6px;
-            color: #e0e0e0;
-            font-size: var(--font-sm);
-        }
-        .refresh-btn, .pause-btn {
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: 1px solid #2a2a3e;
-            cursor: pointer;
-            font-size: var(--font-sm);
-            transition: all 0.2s;
-        }
-        .refresh-btn {
-            background: #22c55e;
-            color: white;
-            border-color: #22c55e;
-        }
-        .refresh-btn:hover {
-            background: #16a34a;
-        }
-        .pause-btn {
-            background: #1a1a2e;
-            color: #9ca3af;
-        }
-        .pause-btn:hover {
-            border-color: #f59e0b;
-            color: #f59e0b;
-        }
-        .pause-btn.paused {
-            background: #f59e0b;
-            color: white;
-            border-color: #f59e0b;
         }
         
         @media (max-width: 768px) {
@@ -1616,6 +1531,10 @@ function getHTML() {
                     💰 Top Volume
                     <span class="count-badge" id="volumeCount">0</span>
                 </div>
+                <div class="tab" onclick="switchTab('targets', event)">
+                    🎯 Target/SL/Risk
+                    <span class="count-badge" id="targetsCount">0</span>
+                </div>
             </div>
             
             <div id="signals" class="content-section active">
@@ -1652,53 +1571,6 @@ function getHTML() {
                         <button class="pair-filter-btn active" onclick="selectPairFilter('all')">ALL</button>
                         <button class="pair-filter-btn" onclick="selectPairFilter('idr')">IDR PAIRS</button>
                         <button class="pair-filter-btn" onclick="selectPairFilter('usdt')">USDT PAIRS</button>
-                    </div>
-                    
-                    <!-- Additional Filters -->
-                    <div class="filter-controls">
-                        <div class="filter-group">
-                            <label>Min Volume (IDR):</label>
-                            <select id="minVolumeFilter" onchange="applyFilters()">
-                                <option value="0">All</option>
-                                <option value="100000000">100 Juta+</option>
-                                <option value="500000000">500 Juta+</option>
-                                <option value="1000000000">1 Milyar+</option>
-                                <option value="5000000000">5 Milyar+</option>
-                                <option value="10000000000">10 Milyar+</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label>Signal Type:</label>
-                            <select id="signalTypeFilter" onchange="applyFilters()">
-                                <option value="all">All Signals</option>
-                                <option value="buy">BUY Only</option>
-                                <option value="sell">SELL Only</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label>Min Score:</label>
-                            <select id="minScoreFilter" onchange="applyFilters()">
-                                <option value="0">All Scores</option>
-                                <option value="30">30+</option>
-                                <option value="50">50+</option>
-                                <option value="70">70+</option>
-                                <option value="90">90+</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Refresh Controls -->
-                    <div class="refresh-controls">
-                        <label>Auto Refresh:</label>
-                        <select id="refreshInterval" onchange="setRefreshInterval(parseInt(this.value))">
-                            <option value="5000">5 detik</option>
-                            <option value="10000" selected>10 detik</option>
-                            <option value="30000">30 detik</option>
-                            <option value="60000">1 menit</option>
-                            <option value="0">Manual</option>
-                        </select>
-                        <button id="refreshNowBtn" class="refresh-btn" onclick="loadMarketData()">🔄 Refresh Now</button>
-                        <button id="pauseRefreshBtn" class="pause-btn" onclick="togglePause()">⏸️ Pause</button>
                     </div>
                     
                     <!-- Buy Signals Content -->
@@ -1845,6 +1717,27 @@ function getHTML() {
                     </div>
                 </div>
             </div>
+            
+            <div id="targets" class="content-section">
+                <div class="table-card">
+                    <div class="table-title">🎯 Target/SL/Risk Analysis - <span id="targetsChartCount">0</span> Assets</div>
+                    <input type="text" id="searchTargets" class="search-box" placeholder="🔍 Search pairs..." onkeyup="filterTargetsTable()">
+                    <div class="table-wrapper" onscroll="handleScroll()" onmouseenter="pauseAutoRefresh()" onmouseleave="resumeAutoRefresh()">
+                        <table id="targetsTable">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" onclick="sortTable('targetsTable', 0, 'number')">Rank</th>
+                                    <th class="sortable" onclick="sortTable('targetsTable', 1, 'string')">Pair</th>
+                                    <th class="sortable" onclick="sortTable('targetsTable', 2, 'number')">Price</th>
+                                    <th class="sortable" onclick="sortTable('targetsTable', 3, 'string')">Signal</th>
+                                    <th class="sortable" onclick="sortTable('targetsTable', 4, 'string')">Target / SL / Risk</th>
+                                </tr>
+                            </thead>
+                            <tbody id="targetsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1913,11 +1806,6 @@ function getHTML() {
         }
         
         // Apply all filters
-        function applyFilters() {
-            if (marketData) {
-                displayMarketData(marketData);
-            }
-        }
         
         // Calculate risk level
         function calculateRiskLevel(ticker, signal, avgVolume) {
@@ -1945,39 +1833,6 @@ function getHTML() {
             if (riskScore >= 5) return { level: 'HIGH', color: '#ef4444', icon: '🔴', class: 'risk-high' };
             if (riskScore >= 3) return { level: 'MEDIUM', color: '#f59e0b', icon: '🟡', class: 'risk-medium' };
             return { level: 'LOW', color: '#22c55e', icon: '🟢', class: 'risk-low' };
-        }
-        
-        // Refresh interval control
-        function setRefreshInterval(interval) {
-            refreshIntervalTime = interval;
-            if (refreshIntervalId) {
-                clearInterval(refreshIntervalId);
-                refreshIntervalId = null;
-            }
-            if (interval > 0 && !isPaused) {
-                refreshIntervalId = setInterval(() => loadMarketData(true), interval);
-            }
-            localStorage.setItem('indodax_refresh_interval', interval);
-        }
-        
-        // Toggle pause/resume
-        function togglePause() {
-            isPaused = !isPaused;
-            const btn = document.getElementById('pauseRefreshBtn');
-            if (isPaused) {
-                if (refreshIntervalId) {
-                    clearInterval(refreshIntervalId);
-                    refreshIntervalId = null;
-                }
-                btn.innerHTML = '▶️ Resume';
-                btn.classList.add('paused');
-            } else {
-                if (refreshIntervalTime > 0) {
-                    refreshIntervalId = setInterval(() => loadMarketData(true), refreshIntervalTime);
-                }
-                btn.innerHTML = '⏸️ Pause';
-                btn.classList.remove('paused');
-            }
         }
         
         function switchSignalTab(tab) {
@@ -2089,7 +1944,8 @@ function getHTML() {
                 searchLosers: document.getElementById('searchLosers')?.value || '',
                 searchVolume: document.getElementById('searchVolume')?.value || '',
                 searchBuySignals: document.getElementById('searchBuySignals')?.value || '',
-                searchSellSignals: document.getElementById('searchSellSignals')?.value || ''
+                searchSellSignals: document.getElementById('searchSellSignals')?.value || '',
+                searchTargets: document.getElementById('searchTargets')?.value || ''
             };
             
             // Save scroll positions to prevent jump during refresh
@@ -2099,7 +1955,8 @@ function getHTML() {
                 losers: document.querySelector('#losers .table-wrapper')?.scrollTop || 0,
                 volume: document.querySelector('#volume .table-wrapper')?.scrollTop || 0,
                 buySignals: document.querySelector('#buySignalsTable')?.closest('.table-wrapper')?.scrollTop || 0,
-                sellSignals: document.querySelector('#sellSignalsTable')?.closest('.table-wrapper')?.scrollTop || 0
+                sellSignals: document.querySelector('#sellSignalsTable')?.closest('.table-wrapper')?.scrollTop || 0,
+                targets: document.querySelector('#targetsTable')?.closest('.table-wrapper')?.scrollTop || 0
             };
             
             if (data.usdtIdrRate) {
@@ -2128,6 +1985,7 @@ function getHTML() {
                 updateVolumeSection(data.topVolume, previousMarketData ? previousMarketData.topVolume : null);
             }
             updateSignalsSection(data.tickers, previousMarketData ? previousMarketData.tickers : null);
+            updateTargetsSection(data.tickers, previousMarketData ? previousMarketData.tickers : null);
             
             // Restore search box values after refresh
             const searchBoxEl = document.getElementById('searchBox');
@@ -2136,6 +1994,7 @@ function getHTML() {
             const searchVolumeEl = document.getElementById('searchVolume');
             const searchBuySignalsEl = document.getElementById('searchBuySignals');
             const searchSellSignalsEl = document.getElementById('searchSellSignals');
+            const searchTargetsEl = document.getElementById('searchTargets');
             
             if (searchBoxEl) searchBoxEl.value = searchValues.searchBox;
             if (searchGainersEl) searchGainersEl.value = searchValues.searchGainers;
@@ -2143,6 +2002,7 @@ function getHTML() {
             if (searchVolumeEl) searchVolumeEl.value = searchValues.searchVolume;
             if (searchBuySignalsEl) searchBuySignalsEl.value = searchValues.searchBuySignals;
             if (searchSellSignalsEl) searchSellSignalsEl.value = searchValues.searchSellSignals;
+            if (searchTargetsEl) searchTargetsEl.value = searchValues.searchTargets;
             
             // Re-apply filters if there were search values
             if (searchValues.searchBox) filterTable();
@@ -2151,6 +2011,7 @@ function getHTML() {
             if (searchValues.searchVolume) filterVolumeTable();
             if (searchValues.searchBuySignals) filterBuySignalsTable();
             if (searchValues.searchSellSignals) filterSellSignalsTable();
+            if (searchValues.searchTargets) filterTargetsTable();
             
             previousMarketData = JSON.parse(JSON.stringify(data));
             
@@ -2162,6 +2023,7 @@ function getHTML() {
                 const volumeWrapper = document.querySelector('#volume .table-wrapper');
                 const buySignalsWrapper = document.querySelector('#buySignalsTable')?.closest('.table-wrapper');
                 const sellSignalsWrapper = document.querySelector('#sellSignalsTable')?.closest('.table-wrapper');
+                const targetsWrapper = document.querySelector('#targetsTable')?.closest('.table-wrapper');
                 
                 if (allMarketsWrapper) allMarketsWrapper.scrollTop = scrollPositions.allMarkets;
                 if (gainersWrapper) gainersWrapper.scrollTop = scrollPositions.gainers;
@@ -2169,6 +2031,7 @@ function getHTML() {
                 if (volumeWrapper) volumeWrapper.scrollTop = scrollPositions.volume;
                 if (buySignalsWrapper) buySignalsWrapper.scrollTop = scrollPositions.buySignals;
                 if (sellSignalsWrapper) sellSignalsWrapper.scrollTop = scrollPositions.sellSignals;
+                if (targetsWrapper) targetsWrapper.scrollTop = scrollPositions.targets;
             });
         }
         
@@ -2201,15 +2064,6 @@ function getHTML() {
             // Apply pair filter
             let filteredTickers = filterByPairType(tickers, selectedPairFilter);
             
-            // Apply additional filters
-            const minVolume = parseInt(document.getElementById('minVolumeFilter')?.value || '0');
-            const signalType = document.getElementById('signalTypeFilter')?.value || 'all';
-            const minScore = parseInt(document.getElementById('minScoreFilter')?.value || '0');
-            
-            if (minVolume > 0) {
-                filteredTickers = filteredTickers.filter(t => t.volume >= minVolume);
-            }
-            
             let buySignals = filteredTickers
                 .filter(t => t.signals[selectedTimeframe] && t.signals[selectedTimeframe].type === 'BUY')
                 .sort((a, b) => b.signals[selectedTimeframe].score - a.signals[selectedTimeframe].score);
@@ -2217,19 +2071,6 @@ function getHTML() {
             let sellSignals = filteredTickers
                 .filter(t => t.signals[selectedTimeframe] && t.signals[selectedTimeframe].type === 'SELL')
                 .sort((a, b) => b.signals[selectedTimeframe].score - a.signals[selectedTimeframe].score);
-            
-            // Apply min score filter
-            if (minScore > 0) {
-                buySignals = buySignals.filter(t => t.signals[selectedTimeframe].score >= minScore);
-                sellSignals = sellSignals.filter(t => t.signals[selectedTimeframe].score >= minScore);
-            }
-            
-            // Apply signal type filter
-            if (signalType === 'buy') {
-                sellSignals = [];
-            } else if (signalType === 'sell') {
-                buySignals = [];
-            }
             
             // Calculate average volume for risk calculation
             const avgVolume = tickers.reduce((sum, t) => sum + t.volume, 0) / tickers.length;
@@ -2947,6 +2788,127 @@ function getHTML() {
         function filterSellSignalsTable() {
             const input = document.getElementById('searchSellSignals').value.toUpperCase();
             const tbody = document.getElementById('sellSignalsBody');
+            const rows = tbody.getElementsByTagName('tr');
+            
+            for (let row of rows) {
+                const pairCell = row.getElementsByTagName('td')[1];
+                if (pairCell) {
+                    const pairText = pairCell.textContent || pairCell.innerText;
+                    row.style.display = pairText.toUpperCase().indexOf(input) > -1 ? '' : 'none';
+                }
+            }
+        }
+        
+        // Calculate target prices, stop loss, and risk/reward
+        function calculateTargetsAndRisk(ticker) {
+            const entry = ticker.last;
+            const high = ticker.high;
+            const low = ticker.low;
+            
+            // Calculate target prices
+            const tp1 = entry + (high - entry) * 0.3;
+            const tp2 = entry + (high - entry) * 0.6;
+            const tp3 = high;
+            
+            // Stop loss is the low price
+            const sl = low;
+            
+            // Calculate risk/reward ratios
+            const potentialLoss = entry - sl;
+            const gainTP1 = tp1 - entry;
+            const gainTP2 = tp2 - entry;
+            const gainTP3 = tp3 - entry;
+            
+            let rr1 = '0:0', rr2 = '0:0', rr3 = '0:0';
+            if (potentialLoss > 0) {
+                rr1 = '1:' + (gainTP1 / potentialLoss).toFixed(1);
+                rr2 = '1:' + (gainTP2 / potentialLoss).toFixed(1);
+                rr3 = '1:' + (gainTP3 / potentialLoss).toFixed(1);
+            }
+            
+            return {
+                tp1: tp1,
+                tp2: tp2,
+                tp3: tp3,
+                sl: sl,
+                rr1: rr1,
+                rr2: rr2,
+                rr3: rr3
+            };
+        }
+        
+        function updateTargetsSection(tickers, previousTickers) {
+            const prevMap = {};
+            if (previousTickers && Array.isArray(previousTickers)) {
+                previousTickers.forEach(t => {
+                    prevMap[t.pair] = t;
+                });
+            }
+            
+            // Filter for tickers with signals
+            let filteredTickers = filterByPairType(tickers, selectedPairFilter);
+            let signalTickers = filteredTickers.filter(t => 
+                t.signals[selectedTimeframe] && 
+                (t.signals[selectedTimeframe].type === 'BUY' || t.signals[selectedTimeframe].type === 'SELL')
+            ).sort((a, b) => b.signals[selectedTimeframe].score - a.signals[selectedTimeframe].score);
+            
+            document.getElementById('targetsCount').textContent = signalTickers.length;
+            document.getElementById('targetsChartCount').textContent = signalTickers.length;
+            
+            const tbody = document.getElementById('targetsBody');
+            tbody.innerHTML = '';
+            
+            if (signalTickers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;">No signals with target/SL data</td></tr>';
+            } else {
+                signalTickers.forEach((ticker, index) => {
+                    const signal = ticker.signals[selectedTimeframe];
+                    const prevTicker = prevMap[ticker.pair];
+                    const targets = calculateTargetsAndRisk(ticker);
+                    
+                    let priceFlash = '';
+                    if (prevTicker) {
+                        if (ticker.last > prevTicker.last) {
+                            priceFlash = 'flash-up';
+                        } else if (ticker.last < prevTicker.last) {
+                            priceFlash = 'flash-down';
+                        }
+                    }
+                    
+                    const pairDisplay = ticker.isUsdtPair ? 
+                        \`<strong>\${ticker.pair.toUpperCase()}</strong><span class="usdt-badge">USDT</span>\` : 
+                        \`<strong>\${ticker.pair.toUpperCase()}</strong>\`;
+                    
+                    const signalBadge = signal.type === 'BUY' ? 
+                        '<span style="color:#22c55e;font-weight:bold;">🟢 BUY</span>' : 
+                        '<span style="color:#ef4444;font-weight:bold;">🔴 SELL</span>';
+                    
+                    // Create vertical format for targets/SL/risk
+                    const targetsSLRisk = \`
+                        <div style="line-height:1.6;white-space:nowrap;">
+                            <div>🎯 TP1: \${formatPrice(targets.tp1)}</div>
+                            <div>🎯 TP2: \${formatPrice(targets.tp2)}</div>
+                            <div>🎯 TP3: \${formatPrice(targets.tp3)}</div>
+                            <div style="margin-top:4px;">🛑 SL: \${formatPrice(targets.sl)}</div>
+                            <div style="margin-top:4px;">💎 Risk/Reward: \${targets.rr2}</div>
+                        </div>
+                    \`;
+                    
+                    const row = tbody.insertRow();
+                    row.innerHTML = \`
+                        <td data-value="\${index + 1}">\${index + 1}</td>
+                        <td data-value="\${ticker.pair}">\${pairDisplay}</td>
+                        <td data-value="\${ticker.last}" class="\${priceFlash}">\${formatPrice(ticker.last)}</td>
+                        <td data-value="\${signal.type}">\${signalBadge}</td>
+                        <td data-value="\${targets.tp2}" style="text-align:left;">\${targetsSLRisk}</td>
+                    \`;
+                });
+            }
+        }
+        
+        function filterTargetsTable() {
+            const input = document.getElementById('searchTargets').value.toUpperCase();
+            const tbody = document.getElementById('targetsBody');
             const rows = tbody.getElementsByTagName('tr');
             
             for (let row of rows) {
