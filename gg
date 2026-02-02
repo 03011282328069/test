@@ -524,11 +524,6 @@ function getHTML() {
             font-size: var(--font-base) !important;
             margin-top: 10px;
         }
-        .refresh-info {
-            color: #9ca3af;
-            font-size: var(--font-sm) !important;
-            margin-top: 5px;
-        }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1110,9 +1105,6 @@ function getHTML() {
             .usdt-rate {
                 margin-top: 6px;
             }
-            .refresh-info {
-                margin-top: 3px;
-            }
 
             /* --- Stats Grid: 2x2 on mobile --- */
             .stats-grid {
@@ -1376,7 +1368,7 @@ function getHTML() {
             h1 {
                 font-size: 1.3em;
             }
-            .subtitle, .usdt-rate, .refresh-info {
+            .subtitle, .usdt-rate {
                 display: none;
             }
             .stats-grid {
@@ -1436,7 +1428,6 @@ function getHTML() {
             </h1>
             <p class="subtitle">Real-time cryptocurrency market with Signal Analysis</p>
             <p class="usdt-rate" id="usdtRate">💱 USDT/IDR Rate: Loading...</p>
-            <p class="refresh-info" id="refreshInfo">⏱️ Auto refresh: 5s (Pauses during interaction)</p>
         </div>
         
         <div id="loading" class="loading">⏳ Loading market data...</div>
@@ -2001,8 +1992,7 @@ function getHTML() {
                     loadMarketData(true);
                 }
             }
-            document.getElementById('refreshInfo').textContent = 
-                \`⏱️ Auto refresh: \${secondsUntilRefresh}s\` + (isPaused ? ' (Paused)' : ' (Active)');
+            // Refresh info UI removed - auto refresh continues silently
         }
         
         function displayMarketData(data) {
