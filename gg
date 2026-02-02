@@ -949,60 +949,6 @@ function getHTML() {
            NEW FEATURES STYLES
            ============================================================ */
         /* Pair Filter */
-        .pair-filter {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .pair-filter-btn {
-            padding: 8px 16px;
-            background: #1a1a2e;
-            border: 1px solid #2a2a3e;
-            border-radius: 6px;
-            cursor: pointer;
-            color: #9ca3af;
-            font-size: var(--font-sm);
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .pair-filter-btn:hover {
-            border-color: #4ade80;
-            color: #4ade80;
-        }
-        .pair-filter-btn.active {
-            background: #4ade80;
-            color: #0f0f1e;
-            border-color: #4ade80;
-        }
-        .pair-filter-btn.idr-active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-        .pair-filter-btn.usdt-active {
-            background: #fbbf24;
-            color: #0f0f1e;
-            border-color: #fbbf24;
-        }
-        
-        /* Watchlist Button */
-        .watchlist-btn {
-            background: transparent;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: #6b7280;
-            transition: all 0.2s;
-            padding: 5px;
-        }
-        .watchlist-btn:hover {
-            color: #fbbf24;
-            transform: scale(1.2);
-        }
-        .watchlist-btn.active {
-            color: #fbbf24;
-        }
         
         /* Risk Badge */
         .risk-badge {
@@ -1566,13 +1512,6 @@ function getHTML() {
                         <button class="tf-btn" onclick="selectTimeframe('1m')">1m</button>
                     </div>
                     
-                    <!-- Pair Type Filter -->
-                    <div class="pair-filter">
-                        <button class="pair-filter-btn active" onclick="selectPairFilter('all')">ALL</button>
-                        <button class="pair-filter-btn" onclick="selectPairFilter('idr')">IDR PAIRS</button>
-                        <button class="pair-filter-btn" onclick="selectPairFilter('usdt')">USDT PAIRS</button>
-                    </div>
-                    
                     <!-- Buy Signals Content -->
                     <div id="buySignalsContent" class="signal-content active">
                         <input type="text" id="searchBuySignals" class="search-box" placeholder="🔍 Search buy signals..." onkeyup="filterBuySignalsTable()">
@@ -1581,16 +1520,17 @@ function getHTML() {
                                 <thead>
                                     <tr>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 0, 'number')">Rank</th>
-                                        <th>⭐</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 2, 'string')">Pair</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 3, 'number')">Price</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 4, 'number')">24h Change</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 5, 'number')">Score</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 6, 'string')">Recommendation</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 7, 'string')">Technical Indicators</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 8, 'string')">Signals</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 9, 'number')">Volume</th>
-                                        <th class="sortable" onclick="sortTable('buySignalsTable', 10, 'string')">Risk</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 1, 'string')">Pair</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 2, 'number')">Price</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 3, 'number')">24h Change</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 4, 'number')">Score</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 5, 'string')">Recommendation</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 6, 'string')">Technical Indicators</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 7, 'string')">Signals</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 8, 'number')">Volume</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 9, 'string')">Risk</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
+                                        <th class="sortable" onclick="sortTable('buySignalsTable', 11, 'string')">📊 Win Rate</th>
                                     </tr>
                                 </thead>
                                 <tbody id="buySignalsBody"></tbody>
@@ -1606,16 +1546,17 @@ function getHTML() {
                                 <thead>
                                     <tr>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 0, 'number')">Rank</th>
-                                        <th>⭐</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 2, 'string')">Pair</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 3, 'number')">Price</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 4, 'number')">24h Change</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 5, 'number')">Score</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 6, 'string')">Recommendation</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 7, 'string')">Technical Indicators</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 8, 'string')">Signals</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 9, 'number')">Volume</th>
-                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 10, 'string')">Risk</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 1, 'string')">Pair</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 2, 'number')">Price</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 3, 'number')">24h Change</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 4, 'number')">Score</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 5, 'string')">Recommendation</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 6, 'string')">Technical Indicators</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 7, 'string')">Signals</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 8, 'number')">Volume</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 9, 'string')">Risk</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
+                                        <th class="sortable" onclick="sortTable('sellSignalsTable', 11, 'string')">📊 Win Rate</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sellSignalsBody"></tbody>
@@ -1756,56 +1697,9 @@ function getHTML() {
         let scrollTimeout;
         
         // New feature variables
-        let selectedPairFilter = 'all';
-        let watchlist = JSON.parse(localStorage.getItem('indodax_watchlist') || '[]');
         let signalHistory = JSON.parse(localStorage.getItem('indodax_signal_history') || '{}');
         let refreshIntervalId = null;
         let refreshIntervalTime = 10000; // default 10 seconds
-        
-        // Watchlist functions
-        function toggleWatchlist(pair) {
-            const index = watchlist.indexOf(pair);
-            if (index > -1) {
-                watchlist.splice(index, 1);
-            } else {
-                watchlist.push(pair);
-            }
-            localStorage.setItem('indodax_watchlist', JSON.stringify(watchlist));
-            if (marketData) {
-                displayMarketData(marketData);
-            }
-        }
-        
-        function isInWatchlist(pair) {
-            return watchlist.includes(pair);
-        }
-        
-        // Pair filter function
-        function selectPairFilter(filter) {
-            selectedPairFilter = filter;
-            document.querySelectorAll('.pair-filter-btn').forEach(btn => {
-                btn.classList.remove('active', 'idr-active', 'usdt-active');
-            });
-            event.target.classList.add('active');
-            if (filter === 'idr') {
-                event.target.classList.add('idr-active');
-            } else if (filter === 'usdt') {
-                event.target.classList.add('usdt-active');
-            }
-            if (marketData) {
-                displayMarketData(marketData);
-            }
-        }
-        
-        // Filter pair by type
-        function filterByPairType(tickers, pairType) {
-            if (pairType === 'all') return tickers;
-            if (pairType === 'idr') return tickers.filter(t => t.pair.endsWith('_idr'));
-            if (pairType === 'usdt') return tickers.filter(t => t.pair.endsWith('_usdt') || t.pair.includes('usdt'));
-            return tickers;
-        }
-        
-        // Apply all filters
         
         // Calculate risk level
         function calculateRiskLevel(ticker, signal, avgVolume) {
@@ -1834,6 +1728,206 @@ function getHTML() {
             if (riskScore >= 3) return { level: 'MEDIUM', color: '#f59e0b', icon: '🟡', class: 'risk-medium' };
             return { level: 'LOW', color: '#22c55e', icon: '🟢', class: 'risk-low' };
         }
+        
+        // Calculate Target/SL/Risk
+        function calculateTargetSLRisk(ticker, signal) {
+            const bandWidth = ticker.high - ticker.low;
+            const last = ticker.last;
+            const high = ticker.high;
+            const low = ticker.low;
+            
+            let result = {
+                targets: [],
+                stopLoss: 0,
+                riskReward: 0,
+                entry: last
+            };
+            
+            if (signal.type === 'SELL') {
+                const resistance1 = last + (bandWidth * 0.236);
+                const resistance2 = last + (bandWidth * 0.382);
+                const resistance3 = high;
+                const stopLoss = low * 0.98;
+                
+                result.targets = [
+                    { label: 'Resistance 1', value: resistance1 },
+                    { label: 'Resistance 2', value: resistance2 },
+                    { label: 'Resistance 3', value: resistance3 }
+                ];
+                result.stopLoss = stopLoss;
+                
+                const target = resistance2;
+                const risk = Math.abs(last - stopLoss);
+                const reward = Math.abs(target - last);
+                result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
+                
+            } else if (signal.type === 'BUY') {
+                const support1 = last - (bandWidth * 0.236);
+                const support2 = last - (bandWidth * 0.382);
+                const support3 = low;
+                const stopLoss = low * 0.95;
+                
+                result.targets = [
+                    { label: 'Support 1', value: support1 },
+                    { label: 'Support 2', value: support2 },
+                    { label: 'Support 3', value: support3 }
+                ];
+                result.stopLoss = stopLoss;
+                
+                const target = last + (last - support2);
+                const risk = Math.abs(last - stopLoss);
+                const reward = Math.abs(target - last);
+                result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
+            }
+            
+            return result;
+        }
+        
+        // Calculate Win Rate based on indicators
+        function calculateWinRate(ticker, signal, avgVolume) {
+            let winRate = 50;
+            let alignedIndicators = 0;
+            const totalIndicators = 6;
+            let indicatorDetails = [];
+            
+            const ind = signal.indicators;
+            const rsi = parseFloat(ind.rsi);
+            const stochRSI = parseFloat(ind.stochRSI);
+            const bbPosition = ind.bbPosition;
+            const momentum = parseFloat(ind.momentum);
+            const volumeRatio = parseFloat(ind.volumeRatio);
+            const score = signal.score;
+            
+            // 1. RSI Check
+            if (signal.type === 'BUY' && rsi < 40) {
+                winRate += 8;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'RSI', aligned: true, value: \`Oversold (\${rsi.toFixed(0)})\` });
+            } else if (signal.type === 'SELL' && rsi > 60) {
+                winRate += 8;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'RSI', aligned: true, value: \`Overbought (\${rsi.toFixed(0)})\` });
+            } else {
+                indicatorDetails.push({ name: 'RSI', aligned: false, value: \`Neutral (\${rsi.toFixed(0)})\` });
+            }
+            
+            // 2. StochRSI Check
+            if (signal.type === 'BUY' && stochRSI < 30) {
+                winRate += 8;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'StochRSI', aligned: true, value: \`Oversold (\${stochRSI.toFixed(0)})\` });
+            } else if (signal.type === 'SELL' && stochRSI > 70) {
+                winRate += 8;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'StochRSI', aligned: true, value: \`Overbought (\${stochRSI.toFixed(0)})\` });
+            } else {
+                indicatorDetails.push({ name: 'StochRSI', aligned: false, value: \`Mid (\${stochRSI.toFixed(0)})\` });
+            }
+            
+            // 3. Bollinger Bands Check
+            if (signal.type === 'BUY' && bbPosition === 'OVERSOLD') {
+                winRate += 8;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'BB', aligned: true, value: 'Near Lower' });
+            } else if (signal.type === 'SELL' && bbPosition === 'OVERBOUGHT') {
+                winRate += 8;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'BB', aligned: true, value: 'Near Upper' });
+            } else {
+                indicatorDetails.push({ name: 'BB', aligned: false, value: bbPosition });
+            }
+            
+            // 4. Momentum Check
+            if (signal.type === 'BUY' && momentum > 0) {
+                winRate += 7;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'Momentum', aligned: true, value: \`+\${momentum.toFixed(1)}%\` });
+            } else if (signal.type === 'SELL' && momentum < 0) {
+                winRate += 7;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'Momentum', aligned: true, value: \`\${momentum.toFixed(1)}%\` });
+            } else {
+                indicatorDetails.push({ name: 'Momentum', aligned: false, value: \`\${momentum.toFixed(1)}%\` });
+            }
+            
+            // 5. Volume Check
+            if (volumeRatio > 1.5) {
+                winRate += 7;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'Volume', aligned: true, value: \`\${volumeRatio.toFixed(1)}x avg\` });
+            } else {
+                indicatorDetails.push({ name: 'Volume', aligned: false, value: \`\${volumeRatio.toFixed(1)}x avg\` });
+            }
+            
+            // 6. Score Check
+            if (score >= 70) {
+                winRate += 7;
+                alignedIndicators++;
+                indicatorDetails.push({ name: 'Score', aligned: true, value: \`\${score} (≥ 70)\` });
+            } else {
+                indicatorDetails.push({ name: 'Score', aligned: false, value: \`\${score} (< 70)\` });
+            }
+            
+            // Determine accuracy level
+            let accuracy = 'Low';
+            if (alignedIndicators >= 5) accuracy = 'Very High';
+            else if (alignedIndicators >= 4) accuracy = 'High';
+            else if (alignedIndicators >= 3) accuracy = 'Medium';
+            
+            winRate = Math.min(winRate, 95);
+            
+            return {
+                winRate,
+                accuracy,
+                alignedIndicators,
+                totalIndicators,
+                indicatorDetails
+            };
+        }
+        
+        // Format Target/SL/Risk display
+        function formatTargetSLDisplay(targetData, signal) {
+            if (signal.type === 'SELL') {
+                return \`
+                    <div style="font-size:11px;line-height:1.4;">
+                        🔴 \${targetData.targets[0].label}: \${formatPrice(targetData.targets[0].value)}<br>
+                        🔴 \${targetData.targets[1].label}: \${formatPrice(targetData.targets[1].value)}<br>
+                        🔴 \${targetData.targets[2].label}: \${formatPrice(targetData.targets[2].value)}<br>
+                        🛑 SL: \${formatPrice(targetData.stopLoss)}<br>
+                        💎 R/R: 1:\${targetData.riskReward}
+                    </div>
+                \`;
+            } else {
+                return \`
+                    <div style="font-size:11px;line-height:1.4;">
+                        🟢 \${targetData.targets[0].label}: \${formatPrice(targetData.targets[0].value)}<br>
+                        🟢 \${targetData.targets[1].label}: \${formatPrice(targetData.targets[1].value)}<br>
+                        🟢 \${targetData.targets[2].label}: \${formatPrice(targetData.targets[2].value)}<br>
+                        🛑 SL: \${formatPrice(targetData.stopLoss)}<br>
+                        💎 R/R: 1:\${targetData.riskReward}
+                    </div>
+                \`;
+            }
+        }
+        
+        // Format Win Rate display
+        function formatWinRateDisplay(winRateData) {
+            let indicatorLines = winRateData.indicatorDetails.map(ind => {
+                const icon = ind.aligned ? '✅' : '❌';
+                return \`\${icon} \${ind.name}: \${ind.value}\`;
+            }).join('<br>');
+            
+            return \`
+                <div style="font-size:11px;line-height:1.4;">
+                    📊 Win Rate: \${winRateData.winRate}%<br>
+                    🎯 Accuracy: \${winRateData.accuracy}<br>
+                    📈 \${winRateData.alignedIndicators}/\${winRateData.totalIndicators} indicators aligned<br>
+                    ─────────────<br>
+                    \${indicatorLines}
+                </div>
+            \`;
+        }
+        
         
         function switchSignalTab(tab) {
             activeSignalTab = tab;
@@ -2061,14 +2155,11 @@ function getHTML() {
                 });
             }
             
-            // Apply pair filter
-            let filteredTickers = filterByPairType(tickers, selectedPairFilter);
-            
-            let buySignals = filteredTickers
+            let buySignals = tickers
                 .filter(t => t.signals[selectedTimeframe] && t.signals[selectedTimeframe].type === 'BUY')
                 .sort((a, b) => b.signals[selectedTimeframe].score - a.signals[selectedTimeframe].score);
             
-            let sellSignals = filteredTickers
+            let sellSignals = tickers
                 .filter(t => t.signals[selectedTimeframe] && t.signals[selectedTimeframe].type === 'SELL')
                 .sort((a, b) => b.signals[selectedTimeframe].score - a.signals[selectedTimeframe].score);
             
@@ -2082,7 +2173,7 @@ function getHTML() {
             buyBody.innerHTML = '';
             
             if (buySignals.length === 0) {
-                buyBody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#9ca3af;">No buy signals for this timeframe</td></tr>';
+                buyBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#9ca3af;">No buy signals for this timeframe</td></tr>';
             } else {
                 buySignals.forEach((ticker, index) => {
                     const signal = ticker.signals[selectedTimeframe];
@@ -2132,15 +2223,17 @@ function getHTML() {
                     // Calculate risk level
                     const riskLevel = calculateRiskLevel(ticker, signal, avgVolume);
                     
+                    // Calculate Target/SL/Risk
+                    const targetData = calculateTargetSLRisk(ticker, signal);
+                    const targetDisplay = formatTargetSLDisplay(targetData, signal);
+                    
+                    // Calculate Win Rate
+                    const winRateData = calculateWinRate(ticker, signal, avgVolume);
+                    const winRateDisplay = formatWinRateDisplay(winRateData);
+                    
                     const row = buyBody.insertRow();
                     row.innerHTML = \`
                         <td data-value="\${index + 1}">\${index + 1}</td>
-                        <td>
-                            <button class="watchlist-btn \${isInWatchlist(ticker.pair) ? 'active' : ''}" 
-                                    onclick="toggleWatchlist('\${ticker.pair}')">
-                                \${isInWatchlist(ticker.pair) ? '★' : '☆'}
-                            </button>
-                        </td>
                         <td data-value="\${ticker.pair}">\${pairDisplay}</td>
                         <td data-value="\${ticker.last}" class="\${priceColorClass} \${priceFlash}">
                             \${priceIndicator} \${formatPrice(ticker.last)}
@@ -2172,6 +2265,12 @@ function getHTML() {
                         <td data-value="\${riskLevel.level}">
                             <span class="risk-badge \${riskLevel.class}">\${riskLevel.icon} \${riskLevel.level}</span>
                         </td>
+                        <td data-value="\${targetData.riskReward}">
+                            \${targetDisplay}
+                        </td>
+                        <td data-value="\${winRateData.winRate}">
+                            \${winRateDisplay}
+                        </td>
                     \`;
                     
                     setTimeout(() => {
@@ -2186,7 +2285,7 @@ function getHTML() {
             sellBody.innerHTML = '';
             
             if (sellSignals.length === 0) {
-                sellBody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#9ca3af;">No sell signals for this timeframe</td></tr>';
+                sellBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#9ca3af;">No sell signals for this timeframe</td></tr>';
             } else {
                 sellSignals.forEach((ticker, index) => {
                     const signal = ticker.signals[selectedTimeframe];
@@ -2236,15 +2335,17 @@ function getHTML() {
                     // Calculate risk level
                     const riskLevel = calculateRiskLevel(ticker, signal, avgVolume);
                     
+                    // Calculate Target/SL/Risk
+                    const targetData = calculateTargetSLRisk(ticker, signal);
+                    const targetDisplay = formatTargetSLDisplay(targetData, signal);
+                    
+                    // Calculate Win Rate
+                    const winRateData = calculateWinRate(ticker, signal, avgVolume);
+                    const winRateDisplay = formatWinRateDisplay(winRateData);
+                    
                     const row = sellBody.insertRow();
                     row.innerHTML = \`
                         <td data-value="\${index + 1}">\${index + 1}</td>
-                        <td>
-                            <button class="watchlist-btn \${isInWatchlist(ticker.pair) ? 'active' : ''}" 
-                                    onclick="toggleWatchlist('\${ticker.pair}')">
-                                \${isInWatchlist(ticker.pair) ? '★' : '☆'}
-                            </button>
-                        </td>
                         <td data-value="\${ticker.pair}">\${pairDisplay}</td>
                         <td data-value="\${ticker.last}" class="\${priceColorClass} \${priceFlash}">
                             \${priceIndicator} \${formatPrice(ticker.last)}
@@ -2275,6 +2376,12 @@ function getHTML() {
                         <td data-value="\${ticker.volume}" class="\${volumeFlash}">\${formatVolume(ticker.volume)}</td>
                         <td data-value="\${riskLevel.level}">
                             <span class="risk-badge \${riskLevel.class}">\${riskLevel.icon} \${riskLevel.level}</span>
+                        </td>
+                        <td data-value="\${targetData.riskReward}">
+                            \${targetDisplay}
+                        </td>
+                        <td data-value="\${winRateData.winRate}">
+                            \${winRateDisplay}
                         </td>
                     \`;
                     
