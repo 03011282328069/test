@@ -756,20 +756,20 @@ function getHTML() {
             font-weight: bold;
         }
         .signal-indicators {
-            font-size: var(--font-sm) !important;
+            font-size: 10px !important;
             color: #9ca3af;
-            margin-top: 5px;
-            line-height: 1.4;
+            margin-top: 2px;
+            line-height: 1.2;
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 2px;
             align-items: center;
         }
         .indicator-badge {
             display: inline-block;
-            padding: 2px 6px;
+            padding: 1px 4px;
             border-radius: 3px;
-            font-size: var(--font-xs) !important;
+            font-size: 9px !important;
             font-weight: bold;
             white-space: nowrap;
         }
@@ -910,18 +910,18 @@ function getHTML() {
            ============================================================ */
         .signal-tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 6px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
         }
         .signal-tab {
-            padding: 10px 20px;
+            padding: 6px 12px;
             background: #1a1a2e;
             border: 1px solid #2a2a3e;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             color: #9ca3af;
-            font-size: var(--font-base) !important;
+            font-size: 11px !important;
             font-weight: 600;
             transition: all 0.3s;
         }
@@ -1477,10 +1477,6 @@ function getHTML() {
                     💰 Top Volume
                     <span class="count-badge" id="volumeCount">0</span>
                 </div>
-                <div class="tab" onclick="switchTab('targets', event)">
-                    🎯 Target/SL/Risk
-                    <span class="count-badge" id="targetsCount">0</span>
-                </div>
             </div>
             
             <div id="signals" class="content-section active">
@@ -1654,27 +1650,6 @@ function getHTML() {
                                 </tr>
                             </thead>
                             <tbody id="volumeBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="targets" class="content-section">
-                <div class="table-card">
-                    <div class="table-title">🎯 Target/SL/Risk Analysis - <span id="targetsChartCount">0</span> Assets</div>
-                    <input type="text" id="searchTargets" class="search-box" placeholder="🔍 Search pairs..." onkeyup="filterTargetsTable()">
-                    <div class="table-wrapper" onscroll="handleScroll()" onmouseenter="pauseAutoRefresh()" onmouseleave="resumeAutoRefresh()">
-                        <table id="targetsTable">
-                            <thead>
-                                <tr>
-                                    <th class="sortable" onclick="sortTable('targetsTable', 0, 'number')">Rank</th>
-                                    <th class="sortable" onclick="sortTable('targetsTable', 1, 'string')">Pair</th>
-                                    <th class="sortable" onclick="sortTable('targetsTable', 2, 'number')">Price</th>
-                                    <th class="sortable" onclick="sortTable('targetsTable', 3, 'string')">Signal</th>
-                                    <th class="sortable" onclick="sortTable('targetsTable', 4, 'string')">Target / SL / Risk</th>
-                                </tr>
-                            </thead>
-                            <tbody id="targetsBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -2038,8 +2013,7 @@ function getHTML() {
                 searchLosers: document.getElementById('searchLosers')?.value || '',
                 searchVolume: document.getElementById('searchVolume')?.value || '',
                 searchBuySignals: document.getElementById('searchBuySignals')?.value || '',
-                searchSellSignals: document.getElementById('searchSellSignals')?.value || '',
-                searchTargets: document.getElementById('searchTargets')?.value || ''
+                searchSellSignals: document.getElementById('searchSellSignals')?.value || ''
             };
             
             // Save scroll positions to prevent jump during refresh
@@ -2049,8 +2023,7 @@ function getHTML() {
                 losers: document.querySelector('#losers .table-wrapper')?.scrollTop || 0,
                 volume: document.querySelector('#volume .table-wrapper')?.scrollTop || 0,
                 buySignals: document.querySelector('#buySignalsTable')?.closest('.table-wrapper')?.scrollTop || 0,
-                sellSignals: document.querySelector('#sellSignalsTable')?.closest('.table-wrapper')?.scrollTop || 0,
-                targets: document.querySelector('#targetsTable')?.closest('.table-wrapper')?.scrollTop || 0
+                sellSignals: document.querySelector('#sellSignalsTable')?.closest('.table-wrapper')?.scrollTop || 0
             };
             
             if (data.usdtIdrRate) {
@@ -2079,7 +2052,6 @@ function getHTML() {
                 updateVolumeSection(data.topVolume, previousMarketData ? previousMarketData.topVolume : null);
             }
             updateSignalsSection(data.tickers, previousMarketData ? previousMarketData.tickers : null);
-            updateTargetsSection(data.tickers, previousMarketData ? previousMarketData.tickers : null);
             
             // Restore search box values after refresh
             const searchBoxEl = document.getElementById('searchBox');
@@ -2088,7 +2060,6 @@ function getHTML() {
             const searchVolumeEl = document.getElementById('searchVolume');
             const searchBuySignalsEl = document.getElementById('searchBuySignals');
             const searchSellSignalsEl = document.getElementById('searchSellSignals');
-            const searchTargetsEl = document.getElementById('searchTargets');
             
             if (searchBoxEl) searchBoxEl.value = searchValues.searchBox;
             if (searchGainersEl) searchGainersEl.value = searchValues.searchGainers;
@@ -2096,7 +2067,6 @@ function getHTML() {
             if (searchVolumeEl) searchVolumeEl.value = searchValues.searchVolume;
             if (searchBuySignalsEl) searchBuySignalsEl.value = searchValues.searchBuySignals;
             if (searchSellSignalsEl) searchSellSignalsEl.value = searchValues.searchSellSignals;
-            if (searchTargetsEl) searchTargetsEl.value = searchValues.searchTargets;
             
             // Re-apply filters if there were search values
             if (searchValues.searchBox) filterTable();
@@ -2105,7 +2075,6 @@ function getHTML() {
             if (searchValues.searchVolume) filterVolumeTable();
             if (searchValues.searchBuySignals) filterBuySignalsTable();
             if (searchValues.searchSellSignals) filterSellSignalsTable();
-            if (searchValues.searchTargets) filterTargetsTable();
             
             previousMarketData = JSON.parse(JSON.stringify(data));
             
@@ -2117,7 +2086,6 @@ function getHTML() {
                 const volumeWrapper = document.querySelector('#volume .table-wrapper');
                 const buySignalsWrapper = document.querySelector('#buySignalsTable')?.closest('.table-wrapper');
                 const sellSignalsWrapper = document.querySelector('#sellSignalsTable')?.closest('.table-wrapper');
-                const targetsWrapper = document.querySelector('#targetsTable')?.closest('.table-wrapper');
                 
                 if (allMarketsWrapper) allMarketsWrapper.scrollTop = scrollPositions.allMarkets;
                 if (gainersWrapper) gainersWrapper.scrollTop = scrollPositions.gainers;
@@ -2125,7 +2093,6 @@ function getHTML() {
                 if (volumeWrapper) volumeWrapper.scrollTop = scrollPositions.volume;
                 if (buySignalsWrapper) buySignalsWrapper.scrollTop = scrollPositions.buySignals;
                 if (sellSignalsWrapper) sellSignalsWrapper.scrollTop = scrollPositions.sellSignals;
-                if (targetsWrapper) targetsWrapper.scrollTop = scrollPositions.targets;
             });
         }
         
@@ -2895,126 +2862,6 @@ function getHTML() {
         function filterSellSignalsTable() {
             const input = document.getElementById('searchSellSignals').value.toUpperCase();
             const tbody = document.getElementById('sellSignalsBody');
-            const rows = tbody.getElementsByTagName('tr');
-            
-            for (let row of rows) {
-                const pairCell = row.getElementsByTagName('td')[1];
-                if (pairCell) {
-                    const pairText = pairCell.textContent || pairCell.innerText;
-                    row.style.display = pairText.toUpperCase().indexOf(input) > -1 ? '' : 'none';
-                }
-            }
-        }
-        
-        // Calculate target prices, stop loss, and risk/reward
-        function calculateTargetsAndRisk(ticker) {
-            const entry = ticker.last;
-            const high = ticker.high;
-            const low = ticker.low;
-            
-            // Calculate target prices
-            const tp1 = entry + (high - entry) * 0.3;
-            const tp2 = entry + (high - entry) * 0.6;
-            const tp3 = high;
-            
-            // Stop loss is the low price
-            const sl = low;
-            
-            // Calculate risk/reward ratios
-            const potentialLoss = entry - sl;
-            const gainTP1 = tp1 - entry;
-            const gainTP2 = tp2 - entry;
-            const gainTP3 = tp3 - entry;
-            
-            let rr1 = '0:0', rr2 = '0:0', rr3 = '0:0';
-            if (potentialLoss > 0) {
-                rr1 = '1:' + (gainTP1 / potentialLoss).toFixed(1);
-                rr2 = '1:' + (gainTP2 / potentialLoss).toFixed(1);
-                rr3 = '1:' + (gainTP3 / potentialLoss).toFixed(1);
-            }
-            
-            return {
-                tp1: tp1,
-                tp2: tp2,
-                tp3: tp3,
-                sl: sl,
-                rr1: rr1,
-                rr2: rr2,
-                rr3: rr3
-            };
-        }
-        
-        function updateTargetsSection(tickers, previousTickers) {
-            const prevMap = {};
-            if (previousTickers && Array.isArray(previousTickers)) {
-                previousTickers.forEach(t => {
-                    prevMap[t.pair] = t;
-                });
-            }
-            
-            // Filter for tickers with signals
-            let signalTickers = tickers.filter(t => 
-                t.signals[selectedTimeframe] && 
-                (t.signals[selectedTimeframe].type === 'BUY' || t.signals[selectedTimeframe].type === 'SELL')
-            ).sort((a, b) => b.signals[selectedTimeframe].score - a.signals[selectedTimeframe].score);
-            
-            document.getElementById('targetsCount').textContent = signalTickers.length;
-            document.getElementById('targetsChartCount').textContent = signalTickers.length;
-            
-            const tbody = document.getElementById('targetsBody');
-            tbody.innerHTML = '';
-            
-            if (signalTickers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;">No signals with target/SL data</td></tr>';
-            } else {
-                signalTickers.forEach((ticker, index) => {
-                    const signal = ticker.signals[selectedTimeframe];
-                    const prevTicker = prevMap[ticker.pair];
-                    const targets = calculateTargetsAndRisk(ticker);
-                    
-                    let priceFlash = '';
-                    if (prevTicker) {
-                        if (ticker.last > prevTicker.last) {
-                            priceFlash = 'flash-up';
-                        } else if (ticker.last < prevTicker.last) {
-                            priceFlash = 'flash-down';
-                        }
-                    }
-                    
-                    const pairDisplay = ticker.isUsdtPair ? 
-                        \`<strong>\${ticker.pair.toUpperCase()}</strong><span class="usdt-badge">USDT</span>\` : 
-                        \`<strong>\${ticker.pair.toUpperCase()}</strong>\`;
-                    
-                    const signalBadge = signal.type === 'BUY' ? 
-                        '<span style="color:#22c55e;font-weight:bold;">🟢 BUY</span>' : 
-                        '<span style="color:#ef4444;font-weight:bold;">🔴 SELL</span>';
-                    
-                    // Create vertical format for targets/SL/risk
-                    const targetsSLRisk = \`
-                        <div style="line-height:1.6;white-space:nowrap;">
-                            <div>🎯 TP1: \${formatPrice(targets.tp1)}</div>
-                            <div>🎯 TP2: \${formatPrice(targets.tp2)}</div>
-                            <div>🎯 TP3: \${formatPrice(targets.tp3)}</div>
-                            <div style="margin-top:4px;">🛑 SL: \${formatPrice(targets.sl)}</div>
-                            <div style="margin-top:4px;">💎 Risk/Reward: \${targets.rr2}</div>
-                        </div>
-                    \`;
-                    
-                    const row = tbody.insertRow();
-                    row.innerHTML = \`
-                        <td data-value="\${index + 1}">\${index + 1}</td>
-                        <td data-value="\${ticker.pair}">\${pairDisplay}</td>
-                        <td data-value="\${ticker.last}" class="\${priceFlash}">\${formatPrice(ticker.last)}</td>
-                        <td data-value="\${signal.type}">\${signalBadge}</td>
-                        <td data-value="\${targets.tp2}" style="text-align:left;">\${targetsSLRisk}</td>
-                    \`;
-                });
-            }
-        }
-        
-        function filterTargetsTable() {
-            const input = document.getElementById('searchTargets').value.toUpperCase();
-            const tbody = document.getElementById('targetsBody');
             const rows = tbody.getElementsByTagName('tr');
             
             for (let row of rows) {
