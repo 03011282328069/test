@@ -137,6 +137,122 @@ async function getMarketData() {
   }
 }
 
+// Helper function to calculate Fibonacci position
+function calculateFibPositionForRecommendation(ticker, high, low, timeframe) {
+  const tfMultiplier = {
+    '15m': 0.5, '30m': 0.7, '1h': 1.0, '2h': 1.3,
+    '4h': 1.8, '1d': 2.5, '3d': 3.5, '1w': 5.0,
+    '2w': 6.5, '1m': 8.0
+  };
+  
+  const multiplier = tfMultiplier[timeframe] || 1.0;
+  const range = (high - low) * multiplier;
+  const last = ticker.last;
+  const tolerance = 0.02; // 2%
+  
+  // Calculate support levels (from high)
+  const support1 = high - (range * 0.236);
+  const support2 = high - (range * 0.382);
+  const support3 = high - (range * 0.618);
+  
+  // Calculate resistance levels (from low)
+  const resistance1 = low + (range * 0.236);
+  const resistance2 = low + (range * 0.382);
+  const resistance3 = low + (range * 0.618);
+  
+  const nearSupport = (
+    Math.abs(last - support1) / last < tolerance ||
+    Math.abs(last - support2) / last < tolerance ||
+    Math.abs(last - support3) / last < tolerance
+  );
+  
+  const nearResistance = (
+    Math.abs(last - resistance1) / last < tolerance ||
+    Math.abs(last - resistance2) / last < tolerance ||
+    Math.abs(last - resistance3) / last < tolerance
+  );
+  
+  return { nearSupport, nearResistance };
+}
+
+// New getRecommendation function with 15 status levels
+function getRecommendation(ticker, bullishCount, bearishCount, winRate, trend, timeframe) {
+  const fibPosition = calculateFibPositionForRecommendation(ticker, ticker.high, ticker.low, timeframe);
+  
+  // SIDEWAYS
+  if (trend === 'SIDEWAYS' && winRate < 55) {
+    return { text: 'SIDEWAYS', emoji: '⚫', color: 'gray' };
+  }
+  
+  // STRONG BUY
+  if (bullishCount >= 7 && winRate >= 85 && fibPosition.nearSupport) {
+    return { text: 'STRONG BUY', emoji: '🟢🟢', color: 'green' };
+  }
+  
+  // BUY NOW
+  if (bullishCount >= 6 && winRate >= 75 && fibPosition.nearSupport) {
+    return { text: 'BUY NOW', emoji: '🟢', color: 'green' };
+  }
+  
+  // BUY
+  if (bullishCount >= 5 && winRate >= 65) {
+    return { text: 'BUY', emoji: '🟢', color: 'green' };
+  }
+  
+  // ACCUMULATE
+  if (bullishCount >= 4 && winRate >= 55 && trend === 'DOWNTREND') {
+    return { text: 'ACCUMULATE', emoji: '🟢', color: 'lightgreen' };
+  }
+  
+  // WATCH BUY
+  if (bullishCount >= 3 && bullishCount <= 4 && winRate >= 50) {
+    return { text: 'WATCH BUY', emoji: '🟡', color: 'yellow' };
+  }
+  
+  // WAIT BUY
+  if (bullishCount >= 4 && !fibPosition.nearSupport) {
+    return { text: 'WAIT BUY', emoji: '🟡', color: 'yellow' };
+  }
+  
+  // STRONG SELL
+  if (bearishCount >= 7 && winRate >= 85 && fibPosition.nearResistance) {
+    return { text: 'STRONG SELL', emoji: '🔴🔴', color: 'red' };
+  }
+  
+  // SELL NOW
+  if (bearishCount >= 6 && winRate >= 75 && fibPosition.nearResistance) {
+    return { text: 'SELL NOW', emoji: '🔴', color: 'red' };
+  }
+  
+  // SELL
+  if (bearishCount >= 5 && winRate >= 65) {
+    return { text: 'SELL', emoji: '🔴', color: 'red' };
+  }
+  
+  // DISTRIBUTE
+  if (bearishCount >= 4 && winRate >= 55 && trend === 'UPTREND') {
+    return { text: 'DISTRIBUTE', emoji: '🔴', color: 'lightcoral' };
+  }
+  
+  // WATCH SELL
+  if (bearishCount >= 3 && bearishCount <= 4 && winRate >= 50) {
+    return { text: 'WATCH SELL', emoji: '🟡', color: 'yellow' };
+  }
+  
+  // WAIT SELL
+  if (bearishCount >= 4 && !fibPosition.nearResistance) {
+    return { text: 'WAIT SELL', emoji: '🟡', color: 'yellow' };
+  }
+  
+  // WAIT
+  if (Math.abs(bullishCount - bearishCount) <= 1) {
+    return { text: 'WAIT', emoji: '🟡', color: 'yellow' };
+  }
+  
+  // HOLD
+  return { text: 'HOLD', emoji: '⚪', color: 'white' };
+}
+
 function analyzeSignalAdvanced(ticker, avgVolume, timeframe = '1h') {
   let score = 0;
   let signals = [];
@@ -200,6 +316,18 @@ function analyzeSignalAdvanced(ticker, avgVolume, timeframe = '1h') {
       orderBookPressure = 'SELL_PRESSURE';
     }
   }
+  
+  // Detect trend
+  let trend = 'SIDEWAYS';
+  const trendThreshold = 2 * tfConfig.sensitivity;
+  if (momentum > trendThreshold) {
+    trend = 'UPTREND';
+  } else if (momentum < -trendThreshold) {
+    trend = 'DOWNTREND';
+  }
+  
+  // MACD proxy (using momentum but treating as separate indicator)
+  const macd = momentum * 10; // Scale for MACD representation
   
   const rsiOversoldThreshold = 30 + (tfConfig.sensitivity - 1) * 10;
   const rsiOverboughtThreshold = 70 - (tfConfig.sensitivity - 1) * 10;
@@ -332,35 +460,60 @@ function analyzeSignalAdvanced(ticker, avgVolume, timeframe = '1h') {
   
   const finalScore = Math.min(score, 100);
   
-  // Determine recommendation based on score and type
-  // Opsi 1: Sistem 5 Tier (Lebih Granular)
-  let recommendation = 'WAIT';
+  // Calculate bullish/bearish counts for the new 8-indicator system
+  let bullishCount = 0;
+  let bearishCount = 0;
   
-  if (type === 'BUY') {
-    if (finalScore >= 90) {
-      recommendation = 'BUY NOW';        // 🚀 Eksekusi segera, sinyal sangat kuat
-    } else if (finalScore >= 70) {
-      recommendation = 'BUY STRONG';     // ✅ Sinyal kuat, beli dengan confidence
-    } else if (finalScore >= 50) {
-      recommendation = 'BUY WATCH';      // 👀 Pantau, siap-siap entry
-    } else if (finalScore >= 30) {
-      recommendation = 'ACCUMULATE';     // 📥 Cicil beli (DCA)
-    } else {
-      recommendation = 'WAIT';           // ⏳ Tunggu momentum
-    }
-  } else if (type === 'SELL') {
-    if (finalScore >= 90) {
-      recommendation = 'SELL NOW';       // 🔴 Jual segera, sinyal sangat kuat
-    } else if (finalScore >= 70) {
-      recommendation = 'SELL STRONG';    // ⚠️ Sinyal jual kuat
-    } else if (finalScore >= 50) {
-      recommendation = 'SELL WATCH';     // 👀 Pantau, siap-siap exit
-    } else if (finalScore >= 30) {
-      recommendation = 'DISTRIBUTE';     // 📤 Cicil jual
-    } else {
-      recommendation = 'WAIT';           // ⏳ Tunggu konfirmasi
-    }
+  // 1. RSI
+  if (rsiProxy < 30) bullishCount++;
+  else if (rsiProxy > 70) bearishCount++;
+  
+  // 2. StochRSI
+  if (stochRSI < 20) bullishCount++;
+  else if (stochRSI > 80) bearishCount++;
+  
+  // 3. BB
+  if (bbSignal === 'OVERSOLD') bullishCount++;
+  else if (bbSignal === 'OVERBOUGHT') bearishCount++;
+  
+  // 4. MACD
+  if (macd > 0) bullishCount++;
+  else if (macd < 0) bearishCount++;
+  
+  // 5. Volume
+  const priceUp = ticker.priceChangePercent > 0;
+  const priceDown = ticker.priceChangePercent < 0;
+  const volumeSpike = volumeRatio > 1.5;
+  if (volumeSpike && priceUp) bullishCount++;
+  else if (volumeSpike && priceDown) bearishCount++;
+  
+  // 6. Momentum
+  if (momentum > 0) bullishCount++;
+  else if (momentum < 0) bearishCount++;
+  
+  // 7. Fib Position
+  const fibPosition = calculateFibPositionForRecommendation(ticker, ticker.high, ticker.low, timeframe);
+  if (fibPosition.nearSupport) bullishCount++;
+  else if (fibPosition.nearResistance) bearishCount++;
+  
+  // 8. Trend
+  if (trend === 'UPTREND') bullishCount++;
+  else if (trend === 'DOWNTREND') bearishCount++;
+  
+  // Calculate win rate
+  const totalIndicators = 8;
+  let winRate;
+  if (bullishCount > bearishCount) {
+    winRate = (bullishCount / totalIndicators) * 100;
+  } else if (bearishCount > bullishCount) {
+    winRate = (bearishCount / totalIndicators) * 100;
+  } else {
+    winRate = 50;
   }
+  
+  // Get recommendation using new system
+  const recommendationData = getRecommendation(ticker, bullishCount, bearishCount, Math.round(winRate), trend, timeframe);
+  const recommendation = recommendationData.text;
   
   return {
     type,
@@ -368,15 +521,23 @@ function analyzeSignalAdvanced(ticker, avgVolume, timeframe = '1h') {
     score: finalScore,
     recommendation: recommendation,
     signals,
+    bullishCount,
+    bearishCount,
+    winRate: Math.round(winRate),
     indicators: {
       rsi: rsiProxy.toFixed(1),
       stochRSI: stochRSI.toFixed(1),
       bbPosition: bbSignal,
+      macd: macd.toFixed(1),
       momentum: momentum.toFixed(2),
       volumeRatio: volumeRatio.toFixed(2),
       volatility: volatility.toFixed(2),
       pricePosition: pricePosition.toFixed(0),
-      orderPressure: orderBookPressure
+      orderPressure: orderBookPressure,
+      trend: trend,
+      volumeSpike: volumeSpike,
+      priceUp: priceUp,
+      priceDown: priceDown
     }
   };
 }
@@ -866,6 +1027,87 @@ function getHTML() {
             background: #6b7280;
             color: white;
         }
+        
+        /* New recommendation badges for 15-status system */
+        .recommendation-badge.strong-buy {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        .recommendation-badge.buy-now {
+            background: #10b981;
+            color: white;
+        }
+        .recommendation-badge.buy {
+            background: #22c55e;
+            color: white;
+        }
+        .recommendation-badge.watch-buy {
+            background: #fbbf24;
+            color: #1f1f2e;
+        }
+        .recommendation-badge.wait-buy {
+            background: #fcd34d;
+            color: #1f1f2e;
+        }
+        .recommendation-badge.strong-sell {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        .recommendation-badge.sell-now {
+            background: #ef4444;
+            color: white;
+        }
+        .recommendation-badge.sell {
+            background: #f97316;
+            color: white;
+        }
+        .recommendation-badge.watch-sell {
+            background: #fb923c;
+            color: white;
+        }
+        .recommendation-badge.wait-sell {
+            background: #fdba74;
+            color: #1f1f2e;
+        }
+        .recommendation-badge.sideways {
+            background: #6b7280;
+            color: white;
+        }
+        
+        /* Vertical signals and technical indicators layout */
+        .signals-list,
+        .technical-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .signal-item,
+        .tech-item {
+            font-size: 11px !important;
+            white-space: nowrap;
+            padding: 2px 0;
+            line-height: 1.3;
+        }
+        
+        .signal-item.bullish {
+            color: #4ade80;
+        }
+        
+        .signal-item.bearish {
+            color: #ef4444;
+        }
+        
+        .signal-item.neutral {
+            color: #9ca3af;
+        }
+        
+        .signals-cell,
+        .technical-cell {
+            font-size: 11px !important;
+            max-width: 280px;
+        }
+        
         .loading {
             text-align: center;
             color: #4ade80;
@@ -1960,63 +2202,43 @@ function getHTML() {
             return { nearSupport, nearResistance };
         }
         
-        // Calculate Win Rate based on 6 indicators
+        // Calculate Win Rate based on 8 indicators
         function calculateWinRate(ticker, signal, avgVolume, timeframe = '1h') {
-            let bullishCount = 0;
-            let bearishCount = 0;
-            const totalIndicators = 6;
+            // Use the counts already calculated in analyzeSignalAdvanced
+            const bullishCount = signal.bullishCount || 0;
+            const bearishCount = signal.bearishCount || 0;
+            const totalIndicators = 8;
+            
+            // Use the win rate already calculated
+            let winRate = signal.winRate || 50;
             
             const ind = signal.indicators;
             const rsi = parseFloat(ind.rsi);
             const stochRSI = parseFloat(ind.stochRSI);
             const bbPosition = ind.bbPosition;
+            const macd = parseFloat(ind.macd);
             const momentum = parseFloat(ind.momentum);
             const volumeRatio = parseFloat(ind.volumeRatio);
+            const trend = ind.trend;
             
-            // 1. RSI (14)
+            // Calculate statuses for display
             const rsiStatus = rsi < 30 ? 'bullish' : rsi > 70 ? 'bearish' : 'neutral';
-            if (rsiStatus === 'bullish') bullishCount++;
-            else if (rsiStatus === 'bearish') bearishCount++;
-            
-            // 2. StochRSI (14)
             const stochStatus = stochRSI < 20 ? 'bullish' : stochRSI > 80 ? 'bearish' : 'neutral';
-            if (stochStatus === 'bullish') bullishCount++;
-            else if (stochStatus === 'bearish') bearishCount++;
-            
-            // 3. Bollinger Bands (20, 2)
             const bbStatus = bbPosition === 'OVERSOLD' ? 'bullish' : bbPosition === 'OVERBOUGHT' ? 'bearish' : 'neutral';
-            if (bbStatus === 'bullish') bullishCount++;
-            else if (bbStatus === 'bearish') bearishCount++;
+            const macdStatus = macd > 0 ? 'bullish' : macd < 0 ? 'bearish' : 'neutral';
+            const momentumStatus = momentum > 0 ? 'bullish' : momentum < 0 ? 'bearish' : 'neutral';
             
-            // 4. MACD (12, 26, 9) - Using momentum as MACD proxy
-            const macdStatus = momentum > 0 ? 'bullish' : momentum < 0 ? 'bearish' : 'neutral';
-            if (macdStatus === 'bullish') bullishCount++;
-            else if (macdStatus === 'bearish') bearishCount++;
-            
-            // 5. Volume Analysis
-            const priceUp = ticker.priceChangePercent > 0;
-            const priceDown = ticker.priceChangePercent < 0;
-            const volumeSpike = volumeRatio > 1.5;
+            const priceUp = ind.priceUp;
+            const priceDown = ind.priceDown;
+            const volumeSpike = ind.volumeSpike;
             const volStatus = (volumeSpike && priceUp) ? 'bullish' : (volumeSpike && priceDown) ? 'bearish' : 'neutral';
-            if (volStatus === 'bullish') bullishCount++;
-            else if (volStatus === 'bearish') bearishCount++;
             
-            // 6. Fibonacci Retracement Position
             const fibPosition = calculateFibPosition(ticker, signal, timeframe);
-            if (fibPosition.nearSupport) bullishCount++;
-            else if (fibPosition.nearResistance) bearishCount++;
+            const fibStatus = fibPosition.nearSupport ? 'bullish' : fibPosition.nearResistance ? 'bearish' : 'neutral';
             
-            // Hitung Win Rate berdasarkan signal type
-            let winRate;
-            if (signal.type === 'BUY') {
-                winRate = (bullishCount / totalIndicators) * 100;
-            } else if (signal.type === 'SELL') {
-                winRate = (bearishCount / totalIndicators) * 100;
-            } else {
-                winRate = 50; // HOLD
-            }
+            const trendStatus = trend === 'UPTREND' ? 'bullish' : trend === 'DOWNTREND' ? 'bearish' : 'neutral';
             
-            // Tentukan level
+            // Determine level
             let level;
             if (winRate >= 80) level = 'Very High';
             else if (winRate >= 65) level = 'High';
@@ -2024,7 +2246,7 @@ function getHTML() {
             else level = 'Low';
             
             return {
-                winRate: Math.round(winRate),
+                winRate: winRate,
                 accuracy: level,
                 bullish: bullishCount,
                 bearish: bearishCount,
@@ -2035,7 +2257,9 @@ function getHTML() {
                     bb: bbStatus === 'bullish' ? '✅' : bbStatus === 'bearish' ? '❌' : '➖',
                     macd: macdStatus === 'bullish' ? '✅' : macdStatus === 'bearish' ? '❌' : '➖',
                     volume: volStatus === 'bullish' ? '✅' : volStatus === 'bearish' ? '❌' : '➖',
-                    fib: fibPosition.nearSupport ? '✅' : fibPosition.nearResistance ? '❌' : '➖'
+                    momentum: momentumStatus === 'bullish' ? '✅' : momentumStatus === 'bearish' ? '❌' : '➖',
+                    fib: fibStatus === 'bullish' ? '✅' : fibStatus === 'bearish' ? '❌' : '➖',
+                    trend: trendStatus === 'bullish' ? '✅' : trendStatus === 'bearish' ? '❌' : '➖'
                 }
             };
         }
@@ -2281,6 +2505,124 @@ function getHTML() {
             return ticker.priceChangePercent >= 0 ? '▲' : '▼';
         }
         
+        // Format signals list vertically (8 indicators)
+        function formatSignalsList(signal, ticker) {
+            const ind = signal.indicators;
+            const rsi = parseFloat(ind.rsi);
+            const stochRSI = parseFloat(ind.stochRSI);
+            const bbPosition = ind.bbPosition;
+            const macd = parseFloat(ind.macd);
+            const momentum = parseFloat(ind.momentum);
+            const volumeRatio = parseFloat(ind.volumeRatio);
+            const trend = ind.trend;
+            
+            const signalsList = [];
+            
+            // 1. RSI Signal
+            if (rsi < 30) {
+                signalsList.push(\`<div class="signal-item bullish">✅ RSI Oversold (\${rsi})</div>\`);
+            } else if (rsi > 70) {
+                signalsList.push(\`<div class="signal-item bearish">❌ RSI Overbought (\${rsi})</div>\`);
+            } else {
+                signalsList.push(\`<div class="signal-item neutral">📊 RSI: \${rsi}</div>\`);
+            }
+            
+            // 2. StochRSI Signal
+            if (stochRSI < 20) {
+                signalsList.push(\`<div class="signal-item bullish">✅ StochRSI Oversold (\${stochRSI.toFixed(0)})</div>\`);
+            } else if (stochRSI > 80) {
+                signalsList.push(\`<div class="signal-item bearish">❌ StochRSI Overbought (\${stochRSI.toFixed(0)})</div>\`);
+            } else {
+                signalsList.push(\`<div class="signal-item neutral">🎯 StochRSI: \${stochRSI.toFixed(0)}</div>\`);
+            }
+            
+            // 3. BB Signal
+            if (bbPosition === 'OVERSOLD') {
+                signalsList.push(\`<div class="signal-item bullish">✅ BB: Near Lower</div>\`);
+            } else if (bbPosition === 'OVERBOUGHT') {
+                signalsList.push(\`<div class="signal-item bearish">❌ BB: Near Upper</div>\`);
+            } else {
+                signalsList.push(\`<div class="signal-item neutral">📉 BB: \${bbPosition}</div>\`);
+            }
+            
+            // 4. MACD Signal
+            if (macd > 0) {
+                signalsList.push(\`<div class="signal-item bullish">✅ MACD: Bullish (+\${macd.toFixed(0)})</div>\`);
+            } else if (macd < 0) {
+                signalsList.push(\`<div class="signal-item bearish">❌ MACD: Bearish (\${macd.toFixed(0)})</div>\`);
+            } else {
+                signalsList.push(\`<div class="signal-item neutral">📊 MACD: Neutral</div>\`);
+            }
+            
+            // 5. Volume Signal
+            if (ind.volumeSpike) {
+                if (ind.priceUp) {
+                    signalsList.push(\`<div class="signal-item bullish">🔥 Volume: \${volumeRatio.toFixed(1)}x Spike + Price Up</div>\`);
+                } else if (ind.priceDown) {
+                    signalsList.push(\`<div class="signal-item bearish">🔥 Volume: \${volumeRatio.toFixed(1)}x Spike + Price Down</div>\`);
+                } else {
+                    signalsList.push(\`<div class="signal-item neutral">🔥 Volume: \${volumeRatio.toFixed(1)}x Spike</div>\`);
+                }
+            } else {
+                signalsList.push(\`<div class="signal-item neutral">📊 Volume: \${volumeRatio.toFixed(1)}x Avg</div>\`);
+            }
+            
+            // 6. Momentum Signal
+            if (momentum > 0) {
+                signalsList.push(\`<div class="signal-item bullish">↗️ Momentum: +\${momentum.toFixed(1)}%</div>\`);
+            } else if (momentum < 0) {
+                signalsList.push(\`<div class="signal-item bearish">↘️ Momentum: \${momentum.toFixed(1)}%</div>\`);
+            } else {
+                signalsList.push(\`<div class="signal-item neutral">➡️ Momentum: Flat</div>\`);
+            }
+            
+            // 7. Fib Position Signal (simplified - we'll show in technical indicators)
+            signalsList.push(\`<div class="signal-item neutral">📐 Fib: Check Technical</div>\`);
+            
+            // 8. Trend Signal
+            if (trend === 'UPTREND') {
+                signalsList.push(\`<div class="signal-item bullish">📈 Trend: Uptrend</div>\`);
+            } else if (trend === 'DOWNTREND') {
+                signalsList.push(\`<div class="signal-item bearish">📉 Trend: Downtrend</div>\`);
+            } else {
+                signalsList.push(\`<div class="signal-item neutral">⚪ Trend: Sideways</div>\`);
+            }
+            
+            return \`<div class="signals-list">\${signalsList.join('')}</div>\`;
+        }
+        
+        // Format technical indicators vertically (8 indicators + Fib levels)
+        function formatTechnicalIndicators(signal, ticker, timeframe) {
+            const ind = signal.indicators;
+            const fib = calculateFibonacciRetracement(ticker.high, ticker.low, ticker.last, signal.type, timeframe);
+            
+            const techList = [];
+            
+            techList.push(\`<div class="tech-item">RSI (14): \${ind.rsi} \${parseFloat(ind.rsi) < 30 ? '✅ Oversold' : parseFloat(ind.rsi) > 70 ? '❌ Overbought' : ''}</div>\`);
+            techList.push(\`<div class="tech-item">StochRSI (14): \${ind.stochRSI} \${parseFloat(ind.stochRSI) < 20 ? '✅ Oversold' : parseFloat(ind.stochRSI) > 80 ? '❌ Overbought' : ''}</div>\`);
+            techList.push(\`<div class="tech-item">BB (20,2): \${ind.bbPosition === 'OVERSOLD' ? 'Near Lower' : ind.bbPosition === 'OVERBOUGHT' ? 'Near Upper' : ind.bbPosition}</div>\`);
+            techList.push(\`<div class="tech-item">MACD (12,26,9): \${ind.macd} \${parseFloat(ind.macd) > 0 ? '📈 Bullish' : parseFloat(ind.macd) < 0 ? '📉 Bearish' : ''}</div>\`);
+            techList.push(\`<div class="tech-item">Volume: \${ind.volumeRatio}x Avg \${ind.volumeSpike ? '🔥 Spike' : ''}</div>\`);
+            techList.push(\`<div class="tech-item">Momentum: \${ind.momentum}% \${parseFloat(ind.momentum) > 0 ? '↗️' : parseFloat(ind.momentum) < 0 ? '↘️' : '➡️'}</div>\`);
+            
+            // Fibonacci levels
+            if (signal.type === 'BUY') {
+                techList.push(\`<div class="tech-item">Fib 23.6%: \${formatPrice(fib.level1)}</div>\`);
+                techList.push(\`<div class="tech-item">Fib 38.2%: \${formatPrice(fib.level2)}</div>\`);
+                techList.push(\`<div class="tech-item">Fib 61.8%: \${formatPrice(fib.level3)}</div>\`);
+                techList.push(\`<div class="tech-item">Fib Position: Near Support</div>\`);
+            } else {
+                techList.push(\`<div class="tech-item">Fib 23.6%: \${formatPrice(fib.level1)}</div>\`);
+                techList.push(\`<div class="tech-item">Fib 38.2%: \${formatPrice(fib.level2)}</div>\`);
+                techList.push(\`<div class="tech-item">Fib 61.8%: \${formatPrice(fib.level3)}</div>\`);
+                techList.push(\`<div class="tech-item">Fib Position: Near Resistance</div>\`);
+            }
+            
+            techList.push(\`<div class="tech-item">Trend: \${ind.trend} \${ind.trend === 'UPTREND' ? '📈' : ind.trend === 'DOWNTREND' ? '📉' : '⚪'}</div>\`);
+            
+            return \`<div class="technical-list">\${techList.join('')}</div>\`;
+        }
+        
         function getRSIBadge(rsi) {
             const val = parseFloat(rsi);
             if (val < 30) return '<span class="indicator-badge rsi-oversold">RSI: ' + rsi + '</span>';
@@ -2363,9 +2705,13 @@ function getHTML() {
                     
                     const ind = signal.indicators;
                     
+                    // Format signals and technical indicators vertically
+                    const technicalIndicatorsDisplay = formatTechnicalIndicators(signal, ticker, selectedTimeframe);
+                    const signalsDisplay = formatSignalsList(signal, ticker);
+                    
                     // Create sortable values for Technical Indicators and Signals
-                    const technicalIndicatorsText = \`RSI:\${ind.rsi} StochRSI:\${ind.stochRSI} BB:\${ind.bbPosition} Vol:\${ind.volumeRatio}x Volatility:\${ind.volatility}%\`;
-                    const signalsText = signal.signals.join(' ');
+                    const technicalIndicatorsText = \`RSI:\${ind.rsi} StochRSI:\${ind.stochRSI} BB:\${ind.bbPosition} MACD:\${ind.macd} Vol:\${ind.volumeRatio}x\`;
+                    const signalsText = \`\${ind.rsi} \${ind.stochRSI} \${ind.bbPosition} \${ind.macd}\`;
                     
                     // Calculate risk level
                     const riskLevel = calculateRiskLevel(ticker, signal, avgVolume);
@@ -2394,19 +2740,11 @@ function getHTML() {
                         <td data-value="\${signal.recommendation}">
                             <span class="recommendation-badge \${signal.recommendation.toLowerCase().replace(/ /g, '-')}">\${signal.recommendation}</span>
                         </td>
-                        <td data-value="\${technicalIndicatorsText}">
-                            <div class="signal-indicators">
-                                \${getRSIBadge(ind.rsi)}
-                                <span class="indicator-badge stochrsi-badge">StochRSI: \${ind.stochRSI}</span>
-                                \${getBBBadge(ind.bbPosition)}
-                                <span class="indicator-badge volume-badge">Vol: \${ind.volumeRatio}x</span>
-                                <span class="indicator-badge volatility-badge">Volatility: \${ind.volatility}%</span>
-                            </div>
+                        <td data-value="\${technicalIndicatorsText}" class="technical-cell">
+                            \${technicalIndicatorsDisplay}
                         </td>
-                        <td data-value="\${signalsText}">
-                            <div class="signal-indicators">
-                                \${signal.signals.join(' • ')}
-                            </div>
+                        <td data-value="\${signalsText}" class="signals-cell">
+                            \${signalsDisplay}
                         </td>
                         <td data-value="\${ticker.volume}" class="\${volumeFlash}">\${formatVolume(ticker.volume)}</td>
                         <td data-value="\${riskLevel.level}">
@@ -2475,9 +2813,13 @@ function getHTML() {
                     
                     const ind = signal.indicators;
                     
+                    // Format signals and technical indicators vertically
+                    const technicalIndicatorsDisplay = formatTechnicalIndicators(signal, ticker, selectedTimeframe);
+                    const signalsDisplay = formatSignalsList(signal, ticker);
+                    
                     // Create sortable values for Technical Indicators and Signals
-                    const technicalIndicatorsText = \`RSI:\${ind.rsi} StochRSI:\${ind.stochRSI} BB:\${ind.bbPosition} Vol:\${ind.volumeRatio}x Volatility:\${ind.volatility}%\`;
-                    const signalsText = signal.signals.join(' ');
+                    const technicalIndicatorsText = \`RSI:\${ind.rsi} StochRSI:\${ind.stochRSI} BB:\${ind.bbPosition} MACD:\${ind.macd} Vol:\${ind.volumeRatio}x\`;
+                    const signalsText = \`\${ind.rsi} \${ind.stochRSI} \${ind.bbPosition} \${ind.macd}\`;
                     
                     // Calculate risk level
                     const riskLevel = calculateRiskLevel(ticker, signal, avgVolume);
@@ -2506,19 +2848,11 @@ function getHTML() {
                         <td data-value="\${signal.recommendation}">
                             <span class="recommendation-badge \${signal.recommendation.toLowerCase().replace(/ /g, '-')}">\${signal.recommendation}</span>
                         </td>
-                        <td data-value="\${technicalIndicatorsText}">
-                            <div class="signal-indicators">
-                                \${getRSIBadge(ind.rsi)}
-                                <span class="indicator-badge stochrsi-badge">StochRSI: \${ind.stochRSI}</span>
-                                \${getBBBadge(ind.bbPosition)}
-                                <span class="indicator-badge volume-badge">Vol: \${ind.volumeRatio}x</span>
-                                <span class="indicator-badge volatility-badge">Volatility: \${ind.volatility}%</span>
-                            </div>
+                        <td data-value="\${technicalIndicatorsText}" class="technical-cell">
+                            \${technicalIndicatorsDisplay}
                         </td>
-                        <td data-value="\${signalsText}">
-                            <div class="signal-indicators">
-                                \${signal.signals.join(' • ')}
-                            </div>
+                        <td data-value="\${signalsText}" class="signals-cell">
+                            \${signalsDisplay}
                         </td>
                         <td data-value="\${ticker.volume}" class="\${volumeFlash}">\${formatVolume(ticker.volume)}</td>
                         <td data-value="\${riskLevel.level}">
