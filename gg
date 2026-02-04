@@ -1420,82 +1420,7 @@ function getHTML() {
             }
         }
         
-        /* ============================================================
-           CHART COLUMN STYLES
-           ============================================================ */
-        .chart-cell {
-            min-width: 220px;
-        }
-
-        .chart-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .chart-container iframe {
-            border-radius: 8px;
-            border: 1px solid #333;
-        }
-
-        .btn-fullchart {
-            padding: 4px 8px;
-            font-size: 11px;
-            background: #1a73e8;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .btn-fullchart:hover {
-            background: #1557b0;
-        }
-
-        /* Chart Modal */
-        #chartModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        #chartModal .modal-content {
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 900px;
-        }
-
-        #chartModal .close-btn {
-            float: right;
-            font-size: 24px;
-            cursor: pointer;
-            color: #fff;
-        }
-
-        #chartModal h3 {
-            margin: 0 0 15px 0;
-            color: #fff;
-        }
-
-        #chartModal .btn-external {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 16px;
-            background: #4caf50;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
+        /* Chart-related CSS removed */
     </style>
 </head>
 <body>
@@ -1598,7 +1523,6 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 9, 'string')">Risk</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 11, 'string')">📊 Win Rate</th>
-                                        <th>📈 Chart</th>
                                     </tr>
                                 </thead>
                                 <tbody id="buySignalsBody"></tbody>
@@ -1625,7 +1549,6 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 9, 'string')">Risk</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 11, 'string')">📊 Win Rate</th>
-                                        <th>📈 Chart</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sellSignalsBody"></tbody>
@@ -1730,8 +1653,7 @@ function getHTML() {
         </div>
     </div>
 
-    <!-- Chart Modal -->
-    <div id="chartModal" style="display: none;"></div>
+    <!-- Chart Modal removed -->
 
     <script>
         let marketData = null;
@@ -1909,75 +1831,100 @@ function getHTML() {
             return { level: 'LOW', color: '#22c55e', icon: '🟢', class: 'risk-low' };
         }
         
-        // Calculate Target/SL/Risk
-        function calculateTargetSLRisk(ticker, signal) {
-            const bandWidth = ticker.high - ticker.low;
+        // Calculate Fibonacci Retracement with proper timeframe multipliers
+        function calculateFibonacciRetracement(high, low, last, signalType, timeframe) {
+            // Fibonacci Levels
+            const FIB_LEVELS = {
+                236: 0.236,
+                382: 0.382,
+                500: 0.500,
+                618: 0.618,
+                786: 0.786
+            };
+            
+            // Timeframe multiplier untuk range
+            const tfMultiplier = {
+                '15m': 0.5, '30m': 0.7, '1h': 1.0, '2h': 1.3,
+                '4h': 1.8, '1d': 2.5, '3d': 3.5, '1w': 5.0,
+                '2w': 6.5, '1m': 8.0
+            };
+            
+            const multiplier = tfMultiplier[timeframe] || 1.0;
+            const range = (high - low) * multiplier;
+            
+            if (signalType === 'BUY') {
+                // Uptrend: Retracement dari High ke Low
+                const fib236 = high - (range * FIB_LEVELS[236]);
+                const fib382 = high - (range * FIB_LEVELS[382]);
+                const fib618 = high - (range * FIB_LEVELS[618]);
+                
+                // Sort descending (S1 > S2 > S3)
+                let supports = [fib236, fib382, fib618].sort((a, b) => b - a);
+                
+                return {
+                    type: 'SUPPORT',
+                    level1: supports[0],
+                    level2: supports[1],
+                    level3: supports[2],
+                    stopLoss: low * (1 - (0.02 * multiplier))
+                };
+                
+            } else { // SELL
+                // Downtrend: Retracement dari Low ke High
+                const fib236 = low + (range * FIB_LEVELS[236]);
+                const fib382 = low + (range * FIB_LEVELS[382]);
+                const fib618 = low + (range * FIB_LEVELS[618]);
+                
+                // Sort ascending (R1 < R2 < R3)
+                let resistances = [fib236, fib382, fib618].sort((a, b) => a - b);
+                
+                return {
+                    type: 'RESISTANCE',
+                    level1: resistances[0],
+                    level2: resistances[1],
+                    level3: resistances[2],
+                    stopLoss: high * (1 + (0.02 * multiplier))
+                };
+            }
+        }
+        
+        // Calculate Target/SL/Risk using Fibonacci Retracement
+        function calculateTargetSLRisk(ticker, signal, timeframe = '1h') {
             const last = ticker.last;
             const high = ticker.high;
             const low = ticker.low;
             
+            // Use the new Fibonacci Retracement function
+            const fib = calculateFibonacciRetracement(high, low, last, signal.type, timeframe);
+            
             let result = {
                 targets: [],
-                stopLoss: 0,
+                stopLoss: fib.stopLoss,
                 riskReward: 0,
                 entry: last
             };
             
             if (signal.type === 'SELL') {
-                // Using Fibonacci retracement levels for resistance calculation
-                // This provides more realistic resistance targets based on price range
-                let resistance1 = last + (bandWidth * 0.236); // 23.6% Fibonacci
-                let resistance2 = last + (bandWidth * 0.382); // 38.2% Fibonacci
-                let resistance3 = last + (bandWidth * 0.618); // 61.8% Fibonacci
-                
-                // Sort ascending: R1 < R2 < R3 (nearest to farthest resistance)
-                let resistances = [resistance1, resistance2, resistance3];
-                resistances.sort((a, b) => a - b);
-                
-                resistance1 = resistances[0]; // Lowest (nearest target)
-                resistance2 = resistances[1]; // Middle
-                resistance3 = resistances[2]; // Highest (farthest target)
-                
-                const stopLoss = high * 1.02; // 2% above high
-                
                 result.targets = [
-                    { label: 'Resistance 1', value: resistance1 },
-                    { label: 'Resistance 2', value: resistance2 },
-                    { label: 'Resistance 3', value: resistance3 }
+                    { label: 'Resistance 1', value: fib.level1 },
+                    { label: 'Resistance 2', value: fib.level2 },
+                    { label: 'Resistance 3', value: fib.level3 }
                 ];
-                result.stopLoss = stopLoss;
                 
-                const target = resistance2;
-                const risk = Math.abs(last - stopLoss);
+                const target = fib.level2;
+                const risk = Math.abs(last - fib.stopLoss);
                 const reward = Math.abs(target - last);
                 result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
                 
             } else if (signal.type === 'BUY') {
-                // Using Fibonacci retracement levels for support calculation
-                // This provides more realistic support targets based on price range
-                let support1 = last - (bandWidth * 0.236); // 23.6% Fibonacci
-                let support2 = last - (bandWidth * 0.382); // 38.2% Fibonacci
-                let support3 = last - (bandWidth * 0.618); // 61.8% Fibonacci
-                
-                // Sort descending: S1 > S2 > S3 (nearest to farthest support)
-                let supports = [support1, support2, support3];
-                supports.sort((a, b) => b - a);
-                
-                support1 = supports[0]; // Highest (nearest support)
-                support2 = supports[1]; // Middle
-                support3 = supports[2]; // Lowest (farthest support)
-                
-                const stopLoss = low * 0.98; // 2% below low
-                
                 result.targets = [
-                    { label: 'Support 1', value: support1 },
-                    { label: 'Support 2', value: support2 },
-                    { label: 'Support 3', value: support3 }
+                    { label: 'Support 1', value: fib.level1 },
+                    { label: 'Support 2', value: fib.level2 },
+                    { label: 'Support 3', value: fib.level3 }
                 ];
-                result.stopLoss = stopLoss;
                 
-                const target = last + (last - support2);
-                const risk = Math.abs(last - stopLoss);
+                const target = last + (last - fib.level2);
+                const risk = Math.abs(last - fib.stopLoss);
                 const reward = Math.abs(target - last);
                 result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
             }
@@ -1985,12 +1932,39 @@ function getHTML() {
             return result;
         }
         
-        // Calculate Win Rate based on indicators
-        function calculateWinRate(ticker, signal, avgVolume) {
-            let winRate = 50;
-            let alignedIndicators = 0;
+        // Helper function: Calculate Fib Position  
+        function calculateFibPosition(ticker, signal, timeframe) {
+            const fib = calculateFibonacciRetracement(ticker.high, ticker.low, ticker.last, signal.type, timeframe);
+            const last = ticker.last;
+            const tolerance = 0.02; // 2%
+            
+            let nearSupport = false;
+            let nearResistance = false;
+            
+            if (signal.type === 'BUY') {
+                // Cek apakah dekat support levels
+                nearSupport = (
+                    Math.abs(last - fib.level1) / last < tolerance ||
+                    Math.abs(last - fib.level2) / last < tolerance ||
+                    Math.abs(last - fib.level3) / last < tolerance
+                );
+            } else if (signal.type === 'SELL') {
+                // Cek apakah dekat resistance levels
+                nearResistance = (
+                    Math.abs(last - fib.level1) / last < tolerance ||
+                    Math.abs(last - fib.level2) / last < tolerance ||
+                    Math.abs(last - fib.level3) / last < tolerance
+                );
+            }
+            
+            return { nearSupport, nearResistance };
+        }
+        
+        // Calculate Win Rate based on 6 indicators
+        function calculateWinRate(ticker, signal, avgVolume, timeframe = '1h') {
+            let bullishCount = 0;
+            let bearishCount = 0;
             const totalIndicators = 6;
-            let indicatorDetails = [];
             
             const ind = signal.indicators;
             const rsi = parseFloat(ind.rsi);
@@ -1998,92 +1972,71 @@ function getHTML() {
             const bbPosition = ind.bbPosition;
             const momentum = parseFloat(ind.momentum);
             const volumeRatio = parseFloat(ind.volumeRatio);
-            const score = signal.score;
             
-            // 1. RSI Check
-            if (signal.type === 'BUY' && rsi < 40) {
-                winRate += 8;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'RSI', aligned: true, value: \`Oversold (\${rsi.toFixed(0)})\` });
-            } else if (signal.type === 'SELL' && rsi > 60) {
-                winRate += 8;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'RSI', aligned: true, value: \`Overbought (\${rsi.toFixed(0)})\` });
+            // 1. RSI (14)
+            const rsiStatus = rsi < 30 ? 'bullish' : rsi > 70 ? 'bearish' : 'neutral';
+            if (rsiStatus === 'bullish') bullishCount++;
+            else if (rsiStatus === 'bearish') bearishCount++;
+            
+            // 2. StochRSI (14)
+            const stochStatus = stochRSI < 20 ? 'bullish' : stochRSI > 80 ? 'bearish' : 'neutral';
+            if (stochStatus === 'bullish') bullishCount++;
+            else if (stochStatus === 'bearish') bearishCount++;
+            
+            // 3. Bollinger Bands (20, 2)
+            const bbStatus = bbPosition === 'OVERSOLD' ? 'bullish' : bbPosition === 'OVERBOUGHT' ? 'bearish' : 'neutral';
+            if (bbStatus === 'bullish') bullishCount++;
+            else if (bbStatus === 'bearish') bearishCount++;
+            
+            // 4. MACD (12, 26, 9) - Using momentum as MACD proxy
+            const macdStatus = momentum > 0 ? 'bullish' : momentum < 0 ? 'bearish' : 'neutral';
+            if (macdStatus === 'bullish') bullishCount++;
+            else if (macdStatus === 'bearish') bearishCount++;
+            
+            // 5. Volume Analysis
+            const priceUp = ticker.priceChangePercent > 0;
+            const priceDown = ticker.priceChangePercent < 0;
+            const volumeSpike = volumeRatio > 1.5;
+            const volStatus = (volumeSpike && priceUp) ? 'bullish' : (volumeSpike && priceDown) ? 'bearish' : 'neutral';
+            if (volStatus === 'bullish') bullishCount++;
+            else if (volStatus === 'bearish') bearishCount++;
+            
+            // 6. Fibonacci Retracement Position
+            const fibPosition = calculateFibPosition(ticker, signal, timeframe);
+            if (fibPosition.nearSupport) bullishCount++;
+            else if (fibPosition.nearResistance) bearishCount++;
+            
+            // Hitung Win Rate berdasarkan signal type
+            let winRate;
+            if (signal.type === 'BUY') {
+                winRate = (bullishCount / totalIndicators) * 100;
+            } else if (signal.type === 'SELL') {
+                winRate = (bearishCount / totalIndicators) * 100;
             } else {
-                indicatorDetails.push({ name: 'RSI', aligned: false, value: \`Neutral (\${rsi.toFixed(0)})\` });
+                winRate = 50; // HOLD
             }
             
-            // 2. StochRSI Check
-            if (signal.type === 'BUY' && stochRSI < 30) {
-                winRate += 8;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'StochRSI', aligned: true, value: \`Oversold (\${stochRSI.toFixed(0)})\` });
-            } else if (signal.type === 'SELL' && stochRSI > 70) {
-                winRate += 8;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'StochRSI', aligned: true, value: \`Overbought (\${stochRSI.toFixed(0)})\` });
-            } else {
-                indicatorDetails.push({ name: 'StochRSI', aligned: false, value: \`Mid (\${stochRSI.toFixed(0)})\` });
-            }
-            
-            // 3. Bollinger Bands Check
-            if (signal.type === 'BUY' && bbPosition === 'OVERSOLD') {
-                winRate += 8;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'BB', aligned: true, value: 'Near Lower' });
-            } else if (signal.type === 'SELL' && bbPosition === 'OVERBOUGHT') {
-                winRate += 8;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'BB', aligned: true, value: 'Near Upper' });
-            } else {
-                indicatorDetails.push({ name: 'BB', aligned: false, value: bbPosition });
-            }
-            
-            // 4. Momentum Check
-            if (signal.type === 'BUY' && momentum > 0) {
-                winRate += 7;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'Momentum', aligned: true, value: \`+\${momentum.toFixed(1)}%\` });
-            } else if (signal.type === 'SELL' && momentum < 0) {
-                winRate += 7;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'Momentum', aligned: true, value: \`\${momentum.toFixed(1)}%\` });
-            } else {
-                indicatorDetails.push({ name: 'Momentum', aligned: false, value: \`\${momentum.toFixed(1)}%\` });
-            }
-            
-            // 5. Volume Check
-            if (volumeRatio > 1.5) {
-                winRate += 7;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'Volume', aligned: true, value: \`\${volumeRatio.toFixed(1)}x avg\` });
-            } else {
-                indicatorDetails.push({ name: 'Volume', aligned: false, value: \`\${volumeRatio.toFixed(1)}x avg\` });
-            }
-            
-            // 6. Score Check
-            if (score >= 70) {
-                winRate += 7;
-                alignedIndicators++;
-                indicatorDetails.push({ name: 'Score', aligned: true, value: \`\${score} (≥ 70)\` });
-            } else {
-                indicatorDetails.push({ name: 'Score', aligned: false, value: \`\${score} (< 70)\` });
-            }
-            
-            // Determine accuracy level
-            let accuracy = 'Low';
-            if (alignedIndicators >= 5) accuracy = 'Very High';
-            else if (alignedIndicators >= 4) accuracy = 'High';
-            else if (alignedIndicators >= 3) accuracy = 'Medium';
-            
-            winRate = Math.min(winRate, 95);
+            // Tentukan level
+            let level;
+            if (winRate >= 80) level = 'Very High';
+            else if (winRate >= 65) level = 'High';
+            else if (winRate >= 50) level = 'Medium';
+            else level = 'Low';
             
             return {
-                winRate,
-                accuracy,
-                alignedIndicators,
-                totalIndicators,
-                indicatorDetails
+                winRate: Math.round(winRate),
+                accuracy: level,
+                bullish: bullishCount,
+                bearish: bearishCount,
+                total: totalIndicators,
+                details: {
+                    rsi: rsiStatus === 'bullish' ? '✅' : rsiStatus === 'bearish' ? '❌' : '➖',
+                    stochRSI: stochStatus === 'bullish' ? '✅' : stochStatus === 'bearish' ? '❌' : '➖',
+                    bb: bbStatus === 'bullish' ? '✅' : bbStatus === 'bearish' ? '❌' : '➖',
+                    macd: macdStatus === 'bullish' ? '✅' : macdStatus === 'bearish' ? '❌' : '➖',
+                    volume: volStatus === 'bullish' ? '✅' : volStatus === 'bearish' ? '❌' : '➖',
+                    fib: fibPosition.nearSupport ? '✅' : fibPosition.nearResistance ? '❌' : '➖'
+                }
             };
         }
         
@@ -2113,19 +2066,19 @@ function getHTML() {
         }
         
         // Format Win Rate display
+        // Format Win Rate display
         function formatWinRateDisplay(winRateData) {
-            let indicatorLines = winRateData.indicatorDetails.map(ind => {
-                const icon = ind.aligned ? '✅' : '❌';
-                return \`\${icon} \${ind.name}: \${ind.value}\`;
-            }).join('<br>');
+            const details = winRateData.details;
+            const count = winRateData.bullish > 0 ? winRateData.bullish : winRateData.bearish;
             
             return \`
-                <div style="font-size:11px;line-height:1.4;">
-                    📊 Win Rate: \${winRateData.winRate}%<br>
-                    🎯 Accuracy: \${winRateData.accuracy}<br>
-                    📈 \${winRateData.alignedIndicators}/\${winRateData.totalIndicators} indicators aligned<br>
-                    ─────────────<br>
-                    \${indicatorLines}
+                <div style="font-size:11px;line-height:1.5;">
+                    📊 Win Rate<br>
+                    <strong>\${winRateData.winRate}%</strong> \${winRateData.accuracy}<br>
+                    ─────────<br>
+                    RSI: \${details.rsi} StochRSI: \${details.stochRSI} BB: \${details.bb}<br>
+                    MACD: \${details.macd} Vol: \${details.volume} Fib: \${details.fib}<br>
+                    <strong>\${count}/\${winRateData.total} Indicators</strong>
                 </div>
             \`;
         }
@@ -2418,11 +2371,11 @@ function getHTML() {
                     const riskLevel = calculateRiskLevel(ticker, signal, avgVolume);
                     
                     // Calculate Target/SL/Risk
-                    const targetData = calculateTargetSLRisk(ticker, signal);
+                    const targetData = calculateTargetSLRisk(ticker, signal, selectedTimeframe);
                     const targetDisplay = formatTargetSLDisplay(targetData, signal);
                     
                     // Calculate Win Rate
-                    const winRateData = calculateWinRate(ticker, signal, avgVolume);
+                    const winRateData = calculateWinRate(ticker, signal, avgVolume, selectedTimeframe);
                     const winRateDisplay = formatWinRateDisplay(winRateData);
                     
                     const row = buyBody.insertRow();
@@ -2464,20 +2417,6 @@ function getHTML() {
                         </td>
                         <td data-value="\${winRateData.winRate}">
                             \${winRateDisplay}
-                        </td>
-                        <td class="chart-cell">
-                            <div class="chart-container">
-                                <iframe 
-                                    src="https://indodax.com/chart/\${ticker.pair.replace('_', '').toUpperCase()}"
-                                    width="200" 
-                                    height="120"
-                                    frameborder="0"
-                                    loading="lazy">
-                                </iframe>
-                                <button class="btn-fullchart" onclick="openFullChart('\${ticker.pair}')">
-                                    🔍 Full Chart
-                                </button>
-                            </div>
                         </td>
                     \`;
                     
@@ -2544,11 +2483,11 @@ function getHTML() {
                     const riskLevel = calculateRiskLevel(ticker, signal, avgVolume);
                     
                     // Calculate Target/SL/Risk
-                    const targetData = calculateTargetSLRisk(ticker, signal);
+                    const targetData = calculateTargetSLRisk(ticker, signal, selectedTimeframe);
                     const targetDisplay = formatTargetSLDisplay(targetData, signal);
                     
                     // Calculate Win Rate
-                    const winRateData = calculateWinRate(ticker, signal, avgVolume);
+                    const winRateData = calculateWinRate(ticker, signal, avgVolume, selectedTimeframe);
                     const winRateDisplay = formatWinRateDisplay(winRateData);
                     
                     const row = sellBody.insertRow();
@@ -2590,20 +2529,6 @@ function getHTML() {
                         </td>
                         <td data-value="\${winRateData.winRate}">
                             \${winRateDisplay}
-                        </td>
-                        <td class="chart-cell">
-                            <div class="chart-container">
-                                <iframe 
-                                    src="https://indodax.com/chart/\${ticker.pair.replace('_', '').toUpperCase()}"
-                                    width="200" 
-                                    height="120"
-                                    frameborder="0"
-                                    loading="lazy">
-                                </iframe>
-                                <button class="btn-fullchart" onclick="openFullChart('\${ticker.pair}')">
-                                    🔍 Full Chart
-                                </button>
-                            </div>
                         </td>
                     \`;
                     
@@ -3128,32 +3053,7 @@ function getHTML() {
             }
         }
         
-        function openFullChart(pair) {
-            const symbol = pair.replace('_', '').toUpperCase();
-            const url = \`https://indodax.com/chart/\${symbol}\`;
-            
-            const modal = document.getElementById('chartModal');
-            modal.innerHTML = \`
-                <div class="modal-content">
-                    <span class="close-btn" onclick="closeChartModal()">&times;</span>
-                    <h3>📈 \${symbol} Chart</h3>
-                    <iframe 
-                        src="\${url}"
-                        width="100%" 
-                        height="500px"
-                        frameborder="0">
-                    </iframe>
-                    <a href="\${url}" target="_blank" class="btn-external">
-                        🔗 Open di Indodax
-                    </a>
-                </div>
-            \`;
-            modal.style.display = 'flex';
-        }
-
-        function closeChartModal() {
-            document.getElementById('chartModal').style.display = 'none';
-        }
+        // Chart modal functions removed
         
         function formatPrice(value) {
             if (!value || value === 0) return 'Rp 0';
