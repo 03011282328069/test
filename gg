@@ -1419,6 +1419,83 @@ function getHTML() {
                 font-size: 10px;
             }
         }
+        
+        /* ============================================================
+           CHART COLUMN STYLES
+           ============================================================ */
+        .chart-cell {
+            min-width: 220px;
+        }
+
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chart-container iframe {
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .btn-fullchart {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-fullchart:hover {
+            background: #1557b0;
+        }
+
+        /* Chart Modal */
+        #chartModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #chartModal .modal-content {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+        }
+
+        #chartModal .close-btn {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        #chartModal h3 {
+            margin: 0 0 15px 0;
+            color: #fff;
+        }
+
+        #chartModal .btn-external {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #4caf50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -1521,6 +1598,7 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 9, 'string')">Risk</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 11, 'string')">📊 Win Rate</th>
+                                        <th>📈 Chart</th>
                                     </tr>
                                 </thead>
                                 <tbody id="buySignalsBody"></tbody>
@@ -1547,6 +1625,7 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 9, 'string')">Risk</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 11, 'string')">📊 Win Rate</th>
+                                        <th>📈 Chart</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sellSignalsBody"></tbody>
@@ -1651,6 +1730,9 @@ function getHTML() {
         </div>
     </div>
 
+    <!-- Chart Modal -->
+    <div id="chartModal" style="display: none;"></div>
+
     <script>
         let marketData = null;
         let previousMarketData = null;
@@ -1713,10 +1795,19 @@ function getHTML() {
             };
             
             if (signal.type === 'SELL') {
-                const resistance1 = last + (bandWidth * 0.236);
-                const resistance2 = last + (bandWidth * 0.382);
-                const resistance3 = high;
-                const stopLoss = low * 0.98;
+                let resistance1 = last + (bandWidth * 0.236);
+                let resistance2 = last + (bandWidth * 0.382);
+                let resistance3 = last + (bandWidth * 0.618);
+                
+                // Sort ascending: R1 < R2 < R3
+                let resistances = [resistance1, resistance2, resistance3];
+                resistances.sort((a, b) => a - b);
+                
+                resistance1 = resistances[0]; // Terendah (target terdekat)
+                resistance2 = resistances[1]; // Tengah
+                resistance3 = resistances[2]; // Tertinggi (target terjauh)
+                
+                const stopLoss = high * 1.02; // 2% di atas high
                 
                 result.targets = [
                     { label: 'Resistance 1', value: resistance1 },
@@ -1731,10 +1822,19 @@ function getHTML() {
                 result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
                 
             } else if (signal.type === 'BUY') {
-                const support1 = last - (bandWidth * 0.236);
-                const support2 = last - (bandWidth * 0.382);
-                const support3 = low;
-                const stopLoss = low * 0.95;
+                let support1 = last - (bandWidth * 0.236);
+                let support2 = last - (bandWidth * 0.382);
+                let support3 = last - (bandWidth * 0.618);
+                
+                // Sort descending: S1 > S2 > S3
+                let supports = [support1, support2, support3];
+                supports.sort((a, b) => b - a);
+                
+                support1 = supports[0]; // Tertinggi (support terdekat)
+                support2 = supports[1]; // Tengah
+                support3 = supports[2]; // Terendah (support terjauh)
+                
+                const stopLoss = low * 0.98; // 2% di bawah low
                 
                 result.targets = [
                     { label: 'Support 1', value: support1 },
@@ -2134,7 +2234,7 @@ function getHTML() {
             buyBody.innerHTML = '';
             
             if (buySignals.length === 0) {
-                buyBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#9ca3af;">No buy signals for this timeframe</td></tr>';
+                buyBody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:#9ca3af;">No buy signals for this timeframe</td></tr>';
             } else {
                 buySignals.forEach((ticker, index) => {
                     const signal = ticker.signals[selectedTimeframe];
@@ -2232,6 +2332,20 @@ function getHTML() {
                         <td data-value="\${winRateData.winRate}">
                             \${winRateDisplay}
                         </td>
+                        <td class="chart-cell">
+                            <div class="chart-container">
+                                <iframe 
+                                    src="https://indodax.com/chart/\${ticker.pair.replace('_', '').toUpperCase()}"
+                                    width="200" 
+                                    height="120"
+                                    frameborder="0"
+                                    loading="lazy">
+                                </iframe>
+                                <button class="btn-fullchart" onclick="openFullChart('\${ticker.pair}')">
+                                    🔍 Full Chart
+                                </button>
+                            </div>
+                        </td>
                     \`;
                     
                     setTimeout(() => {
@@ -2246,7 +2360,7 @@ function getHTML() {
             sellBody.innerHTML = '';
             
             if (sellSignals.length === 0) {
-                sellBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#9ca3af;">No sell signals for this timeframe</td></tr>';
+                sellBody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:#9ca3af;">No sell signals for this timeframe</td></tr>';
             } else {
                 sellSignals.forEach((ticker, index) => {
                     const signal = ticker.signals[selectedTimeframe];
@@ -2343,6 +2457,20 @@ function getHTML() {
                         </td>
                         <td data-value="\${winRateData.winRate}">
                             \${winRateDisplay}
+                        </td>
+                        <td class="chart-cell">
+                            <div class="chart-container">
+                                <iframe 
+                                    src="https://indodax.com/chart/\${ticker.pair.replace('_', '').toUpperCase()}"
+                                    width="200" 
+                                    height="120"
+                                    frameborder="0"
+                                    loading="lazy">
+                                </iframe>
+                                <button class="btn-fullchart" onclick="openFullChart('\${ticker.pair}')">
+                                    🔍 Full Chart
+                                </button>
+                            </div>
                         </td>
                     \`;
                     
@@ -2865,6 +2993,33 @@ function getHTML() {
                     row.style.display = pairText.toUpperCase().indexOf(input) > -1 ? '' : 'none';
                 }
             }
+        }
+        
+        function openFullChart(pair) {
+            const symbol = pair.replace('_', '').toUpperCase();
+            const url = \`https://indodax.com/chart/\${symbol}\`;
+            
+            const modal = document.getElementById('chartModal');
+            modal.innerHTML = \`
+                <div class="modal-content">
+                    <span class="close-btn" onclick="closeChartModal()">&times;</span>
+                    <h3>📈 \${symbol} Chart</h3>
+                    <iframe 
+                        src="\${url}"
+                        width="100%" 
+                        height="500px"
+                        frameborder="0">
+                    </iframe>
+                    <a href="\${url}" target="_blank" class="btn-external">
+                        🔗 Open di Indodax
+                    </a>
+                </div>
+            \`;
+            modal.style.display = 'flex';
+        }
+
+        function closeChartModal() {
+            document.getElementById('chartModal').style.display = 'none';
         }
         
         function formatPrice(value) {
