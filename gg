@@ -1752,6 +1752,132 @@ function getHTML() {
         let refreshIntervalId = null;
         let refreshIntervalTime = 10000; // default 10 seconds
         
+        // ============================================================
+        // REAL CANDLESTICK DATA FUNCTIONS (Placeholder for future enhancement)
+        // ============================================================
+        
+        // Fetch candlestick data untuk indikator akurat (stub for now)
+        async function getCandlestickData(pair, timeframe) {
+            // TODO: Implement when Indodax provides historical candlestick API
+            // For now, return empty array - indicators will use ticker data
+            return [];
+        }
+
+        // Calculate RSI from real candle data (14 period)
+        function calculateRSI(candles, period = 14) {
+            if (!candles || candles.length < period + 1) return 50;
+            
+            let gains = 0;
+            let losses = 0;
+            
+            for (let i = 1; i <= period; i++) {
+                const change = candles[i].close - candles[i-1].close;
+                if (change >= 0) {
+                    gains += change;
+                } else {
+                    losses -= change;
+                }
+            }
+            
+            const avgGain = gains / period;
+            const avgLoss = losses / period;
+            
+            if (avgLoss === 0) return 100;
+            
+            const rs = avgGain / avgLoss;
+            const rsi = 100 - (100 / (1 + rs));
+            
+            return rsi;
+        }
+
+        // Calculate StochRSI from real data (14 period)
+        function calculateStochRSI(candles, period = 14) {
+            if (!candles || candles.length < period * 2) return 50;
+            
+            const rsiValues = [];
+            
+            for (let i = period; i < candles.length; i++) {
+                const slice = candles.slice(i - period, i + 1);
+                rsiValues.push(calculateRSI(slice, period));
+            }
+            
+            if (rsiValues.length < period) return 50;
+            
+            const recentRSI = rsiValues.slice(-period);
+            const minRSI = Math.min(...recentRSI);
+            const maxRSI = Math.max(...recentRSI);
+            
+            if (maxRSI === minRSI) return 50;
+            
+            const currentRSI = recentRSI[recentRSI.length - 1];
+            const stochRSI = ((currentRSI - minRSI) / (maxRSI - minRSI)) * 100;
+            
+            return stochRSI;
+        }
+
+        // Calculate Bollinger Bands from real data (20 period, 2 std dev)
+        function calculateBollingerBands(candles, period = 20, stdDev = 2) {
+            if (!candles || candles.length < period) {
+                return { upper: 0, middle: 0, lower: 0, position: 'MID', posPercent: 50 };
+            }
+            
+            const closes = candles.slice(-period).map(c => c.close);
+            const sma = closes.reduce((a, b) => a + b, 0) / period;
+            
+            const squaredDiffs = closes.map(c => Math.pow(c - sma, 2));
+            const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period;
+            const std = Math.sqrt(variance);
+            
+            const upper = sma + (stdDev * std);
+            const lower = sma - (stdDev * std);
+            const current = candles[candles.length - 1].close;
+            
+            let position = 'MID';
+            const range = upper - lower;
+            const posPercent = range > 0 ? ((current - lower) / range) * 100 : 50;
+            
+            if (posPercent >= 80) position = 'OVERBOUGHT';
+            else if (posPercent <= 20) position = 'OVERSOLD';
+            else if (posPercent >= 60) position = 'UPPER';
+            else if (posPercent <= 40) position = 'LOWER';
+            
+            return { upper, middle: sma, lower, position, posPercent };
+        }
+
+        // Calculate EMA helper function
+        function calculateEMA(data, period) {
+            if (!data || data.length < period) return data[data.length - 1];
+            
+            const multiplier = 2 / (period + 1);
+            let ema = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            
+            for (let i = period; i < data.length; i++) {
+                ema = (data[i] - ema) * multiplier + ema;
+            }
+            
+            return ema;
+        }
+
+        // Calculate MACD from real data (12, 26, 9)
+        function calculateMACD(candles, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+            if (!candles || candles.length < slowPeriod) {
+                return { macd: 0, signal: 0, histogram: 0 };
+            }
+            
+            const closes = candles.map(c => c.close);
+            
+            const emaFast = calculateEMA(closes, fastPeriod);
+            const emaSlow = calculateEMA(closes, slowPeriod);
+            
+            const macdLine = emaFast - emaSlow;
+            
+            // Simplified signal line (approximation)
+            const signalLine = macdLine * 0.8;
+            const histogram = macdLine - signalLine;
+            
+            return { macd: macdLine, signal: signalLine, histogram };
+        }
+        
         // Calculate risk level
         function calculateRiskLevel(ticker, signal, avgVolume) {
             let riskScore = 0;
