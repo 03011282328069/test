@@ -1871,9 +1871,11 @@ function getHTML() {
             
             const macdLine = emaFast - emaSlow;
             
-            // Note: Signal line should ideally be a 9-period EMA of MACD values
-            // This is a simplified approximation for now
-            const signalLine = macdLine * 0.8; // Approximation - TODO: Calculate proper EMA of MACD
+            // IMPORTANT: Signal line should be a 9-period EMA of MACD values
+            // Current implementation uses approximation (MACD * 0.8)
+            // TODO: Implement proper signal line as 9-period EMA of MACD history
+            // This approximation may produce inaccurate signals
+            const signalLine = macdLine * 0.8; // Approximation - not standard MACD
             const histogram = macdLine - signalLine;
             
             return { macd: macdLine, signal: signalLine, histogram };
@@ -1922,9 +1924,11 @@ function getHTML() {
             };
             
             if (signal.type === 'SELL') {
-                let resistance1 = last + (bandWidth * 0.236);
-                let resistance2 = last + (bandWidth * 0.382);
-                let resistance3 = last + (bandWidth * 0.618);
+                // Using Fibonacci retracement levels for resistance calculation
+                // This provides more realistic resistance targets based on price range
+                let resistance1 = last + (bandWidth * 0.236); // 23.6% Fibonacci
+                let resistance2 = last + (bandWidth * 0.382); // 38.2% Fibonacci
+                let resistance3 = last + (bandWidth * 0.618); // 61.8% Fibonacci
                 
                 // Sort ascending: R1 < R2 < R3 (nearest to farthest resistance)
                 let resistances = [resistance1, resistance2, resistance3];
@@ -1949,9 +1953,11 @@ function getHTML() {
                 result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
                 
             } else if (signal.type === 'BUY') {
-                let support1 = last - (bandWidth * 0.236);
-                let support2 = last - (bandWidth * 0.382);
-                let support3 = last - (bandWidth * 0.618);
+                // Using Fibonacci retracement levels for support calculation
+                // This provides more realistic support targets based on price range
+                let support1 = last - (bandWidth * 0.236); // 23.6% Fibonacci
+                let support2 = last - (bandWidth * 0.382); // 38.2% Fibonacci
+                let support3 = last - (bandWidth * 0.618); // 61.8% Fibonacci
                 
                 // Sort descending: S1 > S2 > S3 (nearest to farthest support)
                 let supports = [support1, support2, support3];
