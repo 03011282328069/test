@@ -1871,8 +1871,9 @@ function getHTML() {
             
             const macdLine = emaFast - emaSlow;
             
-            // Simplified signal line (approximation)
-            const signalLine = macdLine * 0.8;
+            // Note: Signal line should ideally be a 9-period EMA of MACD values
+            // This is a simplified approximation for now
+            const signalLine = macdLine * 0.8; // Approximation - TODO: Calculate proper EMA of MACD
             const histogram = macdLine - signalLine;
             
             return { macd: macdLine, signal: signalLine, histogram };
@@ -1925,15 +1926,15 @@ function getHTML() {
                 let resistance2 = last + (bandWidth * 0.382);
                 let resistance3 = last + (bandWidth * 0.618);
                 
-                // Sort ascending: R1 < R2 < R3
+                // Sort ascending: R1 < R2 < R3 (nearest to farthest resistance)
                 let resistances = [resistance1, resistance2, resistance3];
                 resistances.sort((a, b) => a - b);
                 
-                resistance1 = resistances[0]; // Terendah (target terdekat)
-                resistance2 = resistances[1]; // Tengah
-                resistance3 = resistances[2]; // Tertinggi (target terjauh)
+                resistance1 = resistances[0]; // Lowest (nearest target)
+                resistance2 = resistances[1]; // Middle
+                resistance3 = resistances[2]; // Highest (farthest target)
                 
-                const stopLoss = high * 1.02; // 2% di atas high
+                const stopLoss = high * 1.02; // 2% above high
                 
                 result.targets = [
                     { label: 'Resistance 1', value: resistance1 },
@@ -1952,15 +1953,15 @@ function getHTML() {
                 let support2 = last - (bandWidth * 0.382);
                 let support3 = last - (bandWidth * 0.618);
                 
-                // Sort descending: S1 > S2 > S3
+                // Sort descending: S1 > S2 > S3 (nearest to farthest support)
                 let supports = [support1, support2, support3];
                 supports.sort((a, b) => b - a);
                 
-                support1 = supports[0]; // Tertinggi (support terdekat)
-                support2 = supports[1]; // Tengah
-                support3 = supports[2]; // Terendah (support terjauh)
+                support1 = supports[0]; // Highest (nearest support)
+                support2 = supports[1]; // Middle
+                support3 = supports[2]; // Lowest (farthest support)
                 
-                const stopLoss = low * 0.98; // 2% di bawah low
+                const stopLoss = low * 0.98; // 2% below low
                 
                 result.targets = [
                     { label: 'Support 1', value: support1 },
