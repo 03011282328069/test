@@ -1419,6 +1419,83 @@ function getHTML() {
                 font-size: 10px;
             }
         }
+        
+        /* ============================================================
+           CHART COLUMN STYLES
+           ============================================================ */
+        .chart-cell {
+            min-width: 220px;
+        }
+
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chart-container iframe {
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .btn-fullchart {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-fullchart:hover {
+            background: #1557b0;
+        }
+
+        /* Chart Modal */
+        #chartModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #chartModal .modal-content {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+        }
+
+        #chartModal .close-btn {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        #chartModal h3 {
+            margin: 0 0 15px 0;
+            color: #fff;
+        }
+
+        #chartModal .btn-external {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #4caf50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -1521,6 +1598,7 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 9, 'string')">Risk</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 11, 'string')">📊 Win Rate</th>
+                                        <th>📈 Chart</th>
                                     </tr>
                                 </thead>
                                 <tbody id="buySignalsBody"></tbody>
@@ -1547,6 +1625,7 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 9, 'string')">Risk</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 11, 'string')">📊 Win Rate</th>
+                                        <th>📈 Chart</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sellSignalsBody"></tbody>
@@ -1651,6 +1730,9 @@ function getHTML() {
         </div>
     </div>
 
+    <!-- Chart Modal -->
+    <div id="chartModal" style="display: none;"></div>
+
     <script>
         let marketData = null;
         let previousMarketData = null;
@@ -1669,6 +1751,135 @@ function getHTML() {
         let signalHistory = JSON.parse(localStorage.getItem('indodax_signal_history') || '{}');
         let refreshIntervalId = null;
         let refreshIntervalTime = 10000; // default 10 seconds
+        
+        // ============================================================
+        // REAL CANDLESTICK DATA FUNCTIONS (Placeholder for future enhancement)
+        // ============================================================
+        
+        // Fetch candlestick data untuk indikator akurat (stub for now)
+        async function getCandlestickData(pair, timeframe) {
+            // TODO: Implement when Indodax provides historical candlestick API
+            // For now, return empty array - indicators will use ticker data
+            return [];
+        }
+
+        // Calculate RSI from real candle data (14 period)
+        function calculateRSI(candles, period = 14) {
+            if (!candles || candles.length < period + 1) return 50;
+            
+            let gains = 0;
+            let losses = 0;
+            
+            for (let i = 1; i <= period; i++) {
+                const change = candles[i].close - candles[i-1].close;
+                if (change >= 0) {
+                    gains += change;
+                } else {
+                    losses -= change;
+                }
+            }
+            
+            const avgGain = gains / period;
+            const avgLoss = losses / period;
+            
+            if (avgLoss === 0) return 100;
+            
+            const rs = avgGain / avgLoss;
+            const rsi = 100 - (100 / (1 + rs));
+            
+            return rsi;
+        }
+
+        // Calculate StochRSI from real data (14 period)
+        function calculateStochRSI(candles, period = 14) {
+            if (!candles || candles.length < period * 2) return 50;
+            
+            const rsiValues = [];
+            
+            for (let i = period; i < candles.length; i++) {
+                const slice = candles.slice(i - period, i + 1);
+                rsiValues.push(calculateRSI(slice, period));
+            }
+            
+            if (rsiValues.length < period) return 50;
+            
+            const recentRSI = rsiValues.slice(-period);
+            const minRSI = Math.min(...recentRSI);
+            const maxRSI = Math.max(...recentRSI);
+            
+            if (maxRSI === minRSI) return 50;
+            
+            const currentRSI = recentRSI[recentRSI.length - 1];
+            const stochRSI = ((currentRSI - minRSI) / (maxRSI - minRSI)) * 100;
+            
+            return stochRSI;
+        }
+
+        // Calculate Bollinger Bands from real data (20 period, 2 std dev)
+        function calculateBollingerBands(candles, period = 20, stdDev = 2) {
+            if (!candles || candles.length < period) {
+                return { upper: 0, middle: 0, lower: 0, position: 'MID', posPercent: 50 };
+            }
+            
+            const closes = candles.slice(-period).map(c => c.close);
+            const sma = closes.reduce((a, b) => a + b, 0) / period;
+            
+            const squaredDiffs = closes.map(c => Math.pow(c - sma, 2));
+            const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period;
+            const std = Math.sqrt(variance);
+            
+            const upper = sma + (stdDev * std);
+            const lower = sma - (stdDev * std);
+            const current = candles[candles.length - 1].close;
+            
+            let position = 'MID';
+            const range = upper - lower;
+            const posPercent = range > 0 ? ((current - lower) / range) * 100 : 50;
+            
+            if (posPercent >= 80) position = 'OVERBOUGHT';
+            else if (posPercent <= 20) position = 'OVERSOLD';
+            else if (posPercent >= 60) position = 'UPPER';
+            else if (posPercent <= 40) position = 'LOWER';
+            
+            return { upper, middle: sma, lower, position, posPercent };
+        }
+
+        // Calculate EMA helper function
+        function calculateEMA(data, period) {
+            if (!data || data.length < period) return data[data.length - 1];
+            
+            const multiplier = 2 / (period + 1);
+            let ema = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            
+            for (let i = period; i < data.length; i++) {
+                ema = (data[i] - ema) * multiplier + ema;
+            }
+            
+            return ema;
+        }
+
+        // Calculate MACD from real data (12, 26, 9)
+        function calculateMACD(candles, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+            if (!candles || candles.length < slowPeriod) {
+                return { macd: 0, signal: 0, histogram: 0 };
+            }
+            
+            const closes = candles.map(c => c.close);
+            
+            const emaFast = calculateEMA(closes, fastPeriod);
+            const emaSlow = calculateEMA(closes, slowPeriod);
+            
+            const macdLine = emaFast - emaSlow;
+            
+            // IMPORTANT: Signal line should be a 9-period EMA of MACD values
+            // Current implementation uses approximation (MACD * 0.8)
+            // TODO: Implement proper signal line as 9-period EMA of MACD history
+            // This approximation may produce inaccurate signals
+            const signalLine = macdLine * 0.8; // Approximation - not standard MACD
+            const histogram = macdLine - signalLine;
+            
+            return { macd: macdLine, signal: signalLine, histogram };
+        }
         
         // Calculate risk level
         function calculateRiskLevel(ticker, signal, avgVolume) {
@@ -1713,10 +1924,21 @@ function getHTML() {
             };
             
             if (signal.type === 'SELL') {
-                const resistance1 = last + (bandWidth * 0.236);
-                const resistance2 = last + (bandWidth * 0.382);
-                const resistance3 = high;
-                const stopLoss = low * 0.98;
+                // Using Fibonacci retracement levels for resistance calculation
+                // This provides more realistic resistance targets based on price range
+                let resistance1 = last + (bandWidth * 0.236); // 23.6% Fibonacci
+                let resistance2 = last + (bandWidth * 0.382); // 38.2% Fibonacci
+                let resistance3 = last + (bandWidth * 0.618); // 61.8% Fibonacci
+                
+                // Sort ascending: R1 < R2 < R3 (nearest to farthest resistance)
+                let resistances = [resistance1, resistance2, resistance3];
+                resistances.sort((a, b) => a - b);
+                
+                resistance1 = resistances[0]; // Lowest (nearest target)
+                resistance2 = resistances[1]; // Middle
+                resistance3 = resistances[2]; // Highest (farthest target)
+                
+                const stopLoss = high * 1.02; // 2% above high
                 
                 result.targets = [
                     { label: 'Resistance 1', value: resistance1 },
@@ -1731,10 +1953,21 @@ function getHTML() {
                 result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
                 
             } else if (signal.type === 'BUY') {
-                const support1 = last - (bandWidth * 0.236);
-                const support2 = last - (bandWidth * 0.382);
-                const support3 = low;
-                const stopLoss = low * 0.95;
+                // Using Fibonacci retracement levels for support calculation
+                // This provides more realistic support targets based on price range
+                let support1 = last - (bandWidth * 0.236); // 23.6% Fibonacci
+                let support2 = last - (bandWidth * 0.382); // 38.2% Fibonacci
+                let support3 = last - (bandWidth * 0.618); // 61.8% Fibonacci
+                
+                // Sort descending: S1 > S2 > S3 (nearest to farthest support)
+                let supports = [support1, support2, support3];
+                supports.sort((a, b) => b - a);
+                
+                support1 = supports[0]; // Highest (nearest support)
+                support2 = supports[1]; // Middle
+                support3 = supports[2]; // Lowest (farthest support)
+                
+                const stopLoss = low * 0.98; // 2% below low
                 
                 result.targets = [
                     { label: 'Support 1', value: support1 },
@@ -2134,7 +2367,7 @@ function getHTML() {
             buyBody.innerHTML = '';
             
             if (buySignals.length === 0) {
-                buyBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#9ca3af;">No buy signals for this timeframe</td></tr>';
+                buyBody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:#9ca3af;">No buy signals for this timeframe</td></tr>';
             } else {
                 buySignals.forEach((ticker, index) => {
                     const signal = ticker.signals[selectedTimeframe];
@@ -2232,6 +2465,20 @@ function getHTML() {
                         <td data-value="\${winRateData.winRate}">
                             \${winRateDisplay}
                         </td>
+                        <td class="chart-cell">
+                            <div class="chart-container">
+                                <iframe 
+                                    src="https://indodax.com/chart/\${ticker.pair.replace('_', '').toUpperCase()}"
+                                    width="200" 
+                                    height="120"
+                                    frameborder="0"
+                                    loading="lazy">
+                                </iframe>
+                                <button class="btn-fullchart" onclick="openFullChart('\${ticker.pair}')">
+                                    🔍 Full Chart
+                                </button>
+                            </div>
+                        </td>
                     \`;
                     
                     setTimeout(() => {
@@ -2246,7 +2493,7 @@ function getHTML() {
             sellBody.innerHTML = '';
             
             if (sellSignals.length === 0) {
-                sellBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#9ca3af;">No sell signals for this timeframe</td></tr>';
+                sellBody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:#9ca3af;">No sell signals for this timeframe</td></tr>';
             } else {
                 sellSignals.forEach((ticker, index) => {
                     const signal = ticker.signals[selectedTimeframe];
@@ -2343,6 +2590,20 @@ function getHTML() {
                         </td>
                         <td data-value="\${winRateData.winRate}">
                             \${winRateDisplay}
+                        </td>
+                        <td class="chart-cell">
+                            <div class="chart-container">
+                                <iframe 
+                                    src="https://indodax.com/chart/\${ticker.pair.replace('_', '').toUpperCase()}"
+                                    width="200" 
+                                    height="120"
+                                    frameborder="0"
+                                    loading="lazy">
+                                </iframe>
+                                <button class="btn-fullchart" onclick="openFullChart('\${ticker.pair}')">
+                                    🔍 Full Chart
+                                </button>
+                            </div>
                         </td>
                     \`;
                     
@@ -2865,6 +3126,33 @@ function getHTML() {
                     row.style.display = pairText.toUpperCase().indexOf(input) > -1 ? '' : 'none';
                 }
             }
+        }
+        
+        function openFullChart(pair) {
+            const symbol = pair.replace('_', '').toUpperCase();
+            const url = \`https://indodax.com/chart/\${symbol}\`;
+            
+            const modal = document.getElementById('chartModal');
+            modal.innerHTML = \`
+                <div class="modal-content">
+                    <span class="close-btn" onclick="closeChartModal()">&times;</span>
+                    <h3>📈 \${symbol} Chart</h3>
+                    <iframe 
+                        src="\${url}"
+                        width="100%" 
+                        height="500px"
+                        frameborder="0">
+                    </iframe>
+                    <a href="\${url}" target="_blank" class="btn-external">
+                        🔗 Open di Indodax
+                    </a>
+                </div>
+            \`;
+            modal.style.display = 'flex';
+        }
+
+        function closeChartModal() {
+            document.getElementById('chartModal').style.display = 'none';
         }
         
         function formatPrice(value) {
