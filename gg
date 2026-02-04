@@ -1420,82 +1420,7 @@ function getHTML() {
             }
         }
         
-        /* ============================================================
-           CHART COLUMN STYLES
-           ============================================================ */
-        .chart-cell {
-            min-width: 220px;
-        }
-
-        .chart-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .chart-container iframe {
-            border-radius: 8px;
-            border: 1px solid #333;
-        }
-
-        .btn-fullchart {
-            padding: 4px 8px;
-            font-size: 11px;
-            background: #1a73e8;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .btn-fullchart:hover {
-            background: #1557b0;
-        }
-
-        /* Chart Modal */
-        #chartModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        #chartModal .modal-content {
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 900px;
-        }
-
-        #chartModal .close-btn {
-            float: right;
-            font-size: 24px;
-            cursor: pointer;
-            color: #fff;
-        }
-
-        #chartModal h3 {
-            margin: 0 0 15px 0;
-            color: #fff;
-        }
-
-        #chartModal .btn-external {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 16px;
-            background: #4caf50;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
+        /* Chart-related CSS removed */
     </style>
 </head>
 <body>
@@ -1598,7 +1523,6 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 9, 'string')">Risk</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
                                         <th class="sortable" onclick="sortTable('buySignalsTable', 11, 'string')">📊 Win Rate</th>
-                                        <th>📈 Chart</th>
                                     </tr>
                                 </thead>
                                 <tbody id="buySignalsBody"></tbody>
@@ -1625,7 +1549,6 @@ function getHTML() {
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 9, 'string')">Risk</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 10, 'string')">🎯 Target/SL/Risk</th>
                                         <th class="sortable" onclick="sortTable('sellSignalsTable', 11, 'string')">📊 Win Rate</th>
-                                        <th>📈 Chart</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sellSignalsBody"></tbody>
@@ -1730,8 +1653,7 @@ function getHTML() {
         </div>
     </div>
 
-    <!-- Chart Modal -->
-    <div id="chartModal" style="display: none;"></div>
+    <!-- Chart Modal removed -->
 
     <script>
         let marketData = null;
@@ -2465,20 +2387,6 @@ function getHTML() {
                         <td data-value="\${winRateData.winRate}">
                             \${winRateDisplay}
                         </td>
-                        <td class="chart-cell">
-                            <div class="chart-container">
-                                <iframe 
-                                    src="https://indodax.com/chart/\${ticker.pair.replace('_', '').toUpperCase()}"
-                                    width="200" 
-                                    height="120"
-                                    frameborder="0"
-                                    loading="lazy">
-                                </iframe>
-                                <button class="btn-fullchart" onclick="openFullChart('\${ticker.pair}')">
-                                    🔍 Full Chart
-                                </button>
-                            </div>
-                        </td>
                     \`;
                     
                     setTimeout(() => {
@@ -2590,20 +2498,6 @@ function getHTML() {
                         </td>
                         <td data-value="\${winRateData.winRate}">
                             \${winRateDisplay}
-                        </td>
-                        <td class="chart-cell">
-                            <div class="chart-container">
-                                <iframe 
-                                    src="https://indodax.com/chart/\${ticker.pair.replace('_', '').toUpperCase()}"
-                                    width="200" 
-                                    height="120"
-                                    frameborder="0"
-                                    loading="lazy">
-                                </iframe>
-                                <button class="btn-fullchart" onclick="openFullChart('\${ticker.pair}')">
-                                    🔍 Full Chart
-                                </button>
-                            </div>
                         </td>
                     \`;
                     
@@ -3128,32 +3022,7 @@ function getHTML() {
             }
         }
         
-        function openFullChart(pair) {
-            const symbol = pair.replace('_', '').toUpperCase();
-            const url = \`https://indodax.com/chart/\${symbol}\`;
-            
-            const modal = document.getElementById('chartModal');
-            modal.innerHTML = \`
-                <div class="modal-content">
-                    <span class="close-btn" onclick="closeChartModal()">&times;</span>
-                    <h3>📈 \${symbol} Chart</h3>
-                    <iframe 
-                        src="\${url}"
-                        width="100%" 
-                        height="500px"
-                        frameborder="0">
-                    </iframe>
-                    <a href="\${url}" target="_blank" class="btn-external">
-                        🔗 Open di Indodax
-                    </a>
-                </div>
-            \`;
-            modal.style.display = 'flex';
-        }
-
-        function closeChartModal() {
-            document.getElementById('chartModal').style.display = 'none';
-        }
+        // Chart modal functions removed
         
         function formatPrice(value) {
             if (!value || value === 0) return 'Rp 0';
