@@ -1831,75 +1831,100 @@ function getHTML() {
             return { level: 'LOW', color: '#22c55e', icon: '🟢', class: 'risk-low' };
         }
         
-        // Calculate Target/SL/Risk
-        function calculateTargetSLRisk(ticker, signal) {
-            const bandWidth = ticker.high - ticker.low;
+        // Calculate Fibonacci Retracement with proper timeframe multipliers
+        function calculateFibonacciRetracement(high, low, last, signalType, timeframe) {
+            // Fibonacci Levels
+            const FIB_LEVELS = {
+                236: 0.236,
+                382: 0.382,
+                500: 0.500,
+                618: 0.618,
+                786: 0.786
+            };
+            
+            // Timeframe multiplier untuk range
+            const tfMultiplier = {
+                '15m': 0.5, '30m': 0.7, '1h': 1.0, '2h': 1.3,
+                '4h': 1.8, '1d': 2.5, '3d': 3.5, '1w': 5.0,
+                '2w': 6.5, '1m': 8.0
+            };
+            
+            const multiplier = tfMultiplier[timeframe] || 1.0;
+            const range = (high - low) * multiplier;
+            
+            if (signalType === 'BUY') {
+                // Uptrend: Retracement dari High ke Low
+                const fib236 = high - (range * FIB_LEVELS[236]);
+                const fib382 = high - (range * FIB_LEVELS[382]);
+                const fib618 = high - (range * FIB_LEVELS[618]);
+                
+                // Sort descending (S1 > S2 > S3)
+                let supports = [fib236, fib382, fib618].sort((a, b) => b - a);
+                
+                return {
+                    type: 'SUPPORT',
+                    level1: supports[0],
+                    level2: supports[1],
+                    level3: supports[2],
+                    stopLoss: low * (1 - (0.02 * multiplier))
+                };
+                
+            } else { // SELL
+                // Downtrend: Retracement dari Low ke High
+                const fib236 = low + (range * FIB_LEVELS[236]);
+                const fib382 = low + (range * FIB_LEVELS[382]);
+                const fib618 = low + (range * FIB_LEVELS[618]);
+                
+                // Sort ascending (R1 < R2 < R3)
+                let resistances = [fib236, fib382, fib618].sort((a, b) => a - b);
+                
+                return {
+                    type: 'RESISTANCE',
+                    level1: resistances[0],
+                    level2: resistances[1],
+                    level3: resistances[2],
+                    stopLoss: high * (1 + (0.02 * multiplier))
+                };
+            }
+        }
+        
+        // Calculate Target/SL/Risk using Fibonacci Retracement
+        function calculateTargetSLRisk(ticker, signal, timeframe = '1h') {
             const last = ticker.last;
             const high = ticker.high;
             const low = ticker.low;
             
+            // Use the new Fibonacci Retracement function
+            const fib = calculateFibonacciRetracement(high, low, last, signal.type, timeframe);
+            
             let result = {
                 targets: [],
-                stopLoss: 0,
+                stopLoss: fib.stopLoss,
                 riskReward: 0,
                 entry: last
             };
             
             if (signal.type === 'SELL') {
-                // Using Fibonacci retracement levels for resistance calculation
-                // This provides more realistic resistance targets based on price range
-                let resistance1 = last + (bandWidth * 0.236); // 23.6% Fibonacci
-                let resistance2 = last + (bandWidth * 0.382); // 38.2% Fibonacci
-                let resistance3 = last + (bandWidth * 0.618); // 61.8% Fibonacci
-                
-                // Sort ascending: R1 < R2 < R3 (nearest to farthest resistance)
-                let resistances = [resistance1, resistance2, resistance3];
-                resistances.sort((a, b) => a - b);
-                
-                resistance1 = resistances[0]; // Lowest (nearest target)
-                resistance2 = resistances[1]; // Middle
-                resistance3 = resistances[2]; // Highest (farthest target)
-                
-                const stopLoss = high * 1.02; // 2% above high
-                
                 result.targets = [
-                    { label: 'Resistance 1', value: resistance1 },
-                    { label: 'Resistance 2', value: resistance2 },
-                    { label: 'Resistance 3', value: resistance3 }
+                    { label: 'Resistance 1', value: fib.level1 },
+                    { label: 'Resistance 2', value: fib.level2 },
+                    { label: 'Resistance 3', value: fib.level3 }
                 ];
-                result.stopLoss = stopLoss;
                 
-                const target = resistance2;
-                const risk = Math.abs(last - stopLoss);
+                const target = fib.level2;
+                const risk = Math.abs(last - fib.stopLoss);
                 const reward = Math.abs(target - last);
                 result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
                 
             } else if (signal.type === 'BUY') {
-                // Using Fibonacci retracement levels for support calculation
-                // This provides more realistic support targets based on price range
-                let support1 = last - (bandWidth * 0.236); // 23.6% Fibonacci
-                let support2 = last - (bandWidth * 0.382); // 38.2% Fibonacci
-                let support3 = last - (bandWidth * 0.618); // 61.8% Fibonacci
-                
-                // Sort descending: S1 > S2 > S3 (nearest to farthest support)
-                let supports = [support1, support2, support3];
-                supports.sort((a, b) => b - a);
-                
-                support1 = supports[0]; // Highest (nearest support)
-                support2 = supports[1]; // Middle
-                support3 = supports[2]; // Lowest (farthest support)
-                
-                const stopLoss = low * 0.98; // 2% below low
-                
                 result.targets = [
-                    { label: 'Support 1', value: support1 },
-                    { label: 'Support 2', value: support2 },
-                    { label: 'Support 3', value: support3 }
+                    { label: 'Support 1', value: fib.level1 },
+                    { label: 'Support 2', value: fib.level2 },
+                    { label: 'Support 3', value: fib.level3 }
                 ];
-                result.stopLoss = stopLoss;
                 
-                const target = last + (last - support2);
-                const risk = Math.abs(last - stopLoss);
+                const target = last + (last - fib.level2);
+                const risk = Math.abs(last - fib.stopLoss);
                 const reward = Math.abs(target - last);
                 result.riskReward = risk > 0 ? (reward / risk).toFixed(1) : 0;
             }
@@ -2340,7 +2365,7 @@ function getHTML() {
                     const riskLevel = calculateRiskLevel(ticker, signal, avgVolume);
                     
                     // Calculate Target/SL/Risk
-                    const targetData = calculateTargetSLRisk(ticker, signal);
+                    const targetData = calculateTargetSLRisk(ticker, signal, selectedTimeframe);
                     const targetDisplay = formatTargetSLDisplay(targetData, signal);
                     
                     // Calculate Win Rate
@@ -2452,7 +2477,7 @@ function getHTML() {
                     const riskLevel = calculateRiskLevel(ticker, signal, avgVolume);
                     
                     // Calculate Target/SL/Risk
-                    const targetData = calculateTargetSLRisk(ticker, signal);
+                    const targetData = calculateTargetSLRisk(ticker, signal, selectedTimeframe);
                     const targetDisplay = formatTargetSLDisplay(targetData, signal);
                     
                     // Calculate Win Rate
