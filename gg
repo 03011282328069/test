@@ -137,7 +137,9 @@ async function getMarketData() {
   }
 }
 
-// Helper function to calculate Fibonacci position
+// Helper function to calculate Fibonacci position for recommendation logic
+// This version calculates both support and resistance regardless of signal type
+// Used early in signal analysis before type is fully determined
 function calculateFibPositionForRecommendation(ticker, high, low, timeframe) {
   const tfMultiplier = {
     '15m': 0.5, '30m': 0.7, '1h': 1.0, '2h': 1.3,
@@ -326,8 +328,12 @@ function analyzeSignalAdvanced(ticker, avgVolume, timeframe = '1h') {
     trend = 'DOWNTREND';
   }
   
-  // MACD proxy (using momentum but treating as separate indicator)
-  const macd = momentum * 10; // Scale for MACD representation
+  // MACD proxy - use price position relative to midpoint and volume for more independence
+  // This makes it different from pure momentum
+  const midPoint = (ticker.high + ticker.low) / 2;
+  const priceVsMid = ((ticker.last - midPoint) / midPoint) * 100;
+  const volumeBoost = volumeRatio > 1.2 ? 1.5 : 1.0;
+  const macd = priceVsMid * volumeBoost * tfConfig.sensitivity;
   
   const rsiOversoldThreshold = 30 + (tfConfig.sensitivity - 1) * 10;
   const rsiOverboughtThreshold = 70 - (tfConfig.sensitivity - 1) * 10;
@@ -2174,7 +2180,9 @@ function getHTML() {
             return result;
         }
         
-        // Helper function: Calculate Fib Position  
+        // Helper function: Calculate Fib Position based on signal type
+        // This version uses signal.type to determine which levels to check
+        // Used in win rate calculation where signal type is already known
         function calculateFibPosition(ticker, signal, timeframe) {
             const fib = calculateFibonacciRetracement(ticker.high, ticker.low, ticker.last, signal.type, timeframe);
             const last = ticker.last;
